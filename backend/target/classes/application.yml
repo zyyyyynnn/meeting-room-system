@@ -1,0 +1,47 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: meeting-room-system
+  datasource:
+    url: ${DB_URL:jdbc:mysql://127.0.0.1:3306/meeting_room?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&createDatabaseIfNotExist=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:mysql123456}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      database: ${REDIS_DB:0}
+  jackson:
+    time-zone: Asia/Shanghai
+    date-format: yyyy-MM-dd HH:mm:ss
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto
+
+app:
+  security:
+    jwt:
+      issuer: meeting-room-system
+      secret: ${JWT_SECRET:dev-jwt-secret-change-me-at-least-32-bytes}
+      expire-minutes: 720
+  bootstrap:
+    admin-username: ${BOOTSTRAP_ADMIN_USERNAME:admin}
+    admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:admin123}
+    super-admin-username: ${BOOTSTRAP_SUPER_ADMIN_USERNAME:root}
+    super-admin-password: ${BOOTSTRAP_SUPER_ADMIN_PASSWORD:Root@123456}
+    reset-admin-password-on-start: ${BOOTSTRAP_RESET_ADMIN_PASSWORD_ON_START:true}
+  reservation-rules:
+    max-duration-minutes: ${RULE_MAX_DURATION_MINUTES:120}
+    max-advance-days: ${RULE_MAX_ADVANCE_DAYS:7}
+    max-reservations-per-user-per-day: ${RULE_MAX_PER_USER_PER_DAY:2}
+
+logging:
+  level:
+    "[com.example]": info
+
