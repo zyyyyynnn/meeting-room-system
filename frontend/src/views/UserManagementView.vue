@@ -1,14 +1,56 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { getRequestErrorMessage } from '../api/http'
 import { apiUpdateUserEnabled, apiUpdateUserRole, apiUserList } from '../api/mrs'
 import type { UserAccount } from '../api/types'
+import PageStatusPanel from '../components/PageStatusPanel.vue'
 import { authStore } from '../store/auth'
 
+type ViewState = 'loading' | 'ready' | 'error'
+
 const loading = ref(false)
+const viewState = ref<ViewState>('loading')
+const statusMessage = ref('')
+const hasLoadedOnce = ref(false)
 const users = ref<UserAccount[]>([])
 
+const filters = reactive({
+  keyword: '',
+  role: 'ALL' as 'ALL' | 'SUPER_ADMIN' | 'ADMIN' | 'USER',
+  enabled: 'ALL' as 'ALL' | 'ENABLED' | 'DISABLED',
+})
+
 const myUserId = computed(() => authStore.state.userId)
+
+const filteredUsers = computed(() => {
+  const keyword = filters.keyword.trim().toLowerCase()
+  return users.value.filter((user) => {
+    const hitKeyword = !keyword || String(user.username ?? '').toLowerCase().includes(keyword)
+    const hitRole = filters.role === 'ALL' || user.role === filters.role
+    const hitEnabled =
+      filters.enabled === 'ALL' ||
+      (filters.enabled === 'ENABLED' && user.enabled) ||
+      (filters.enabled === 'DISABLED' && !user.enabled)
+    return hitKeyword && hitRole && hitEnabled
+  })
+})
+
+const showBlockingState = computed(() => !hasLoadedOnce.value && viewState.value !== 'ready')
+const showInlineError = computed(() => hasLoadedOnce.value && viewState.value === 'error')
+const stateTitle = computed(() => (viewState.value === 'loading' ? '正在加载用户与权限数据' : '用户与权限数据暂时不可用'))
+const stateDescription = computed(() => {
+  if (viewState.value === 'loading') {
+    return '正在同步账号角色和启用状态，请稍候。'
+  }
+  return statusMessage.value || '当前无法获取用户列表，请稍后重试。'
+})
+const emptyUserMessage = computed(() => {
+  if (users.value.length) {
+    return '当前筛选条件下暂无匹配账号，请调整筛选条件后再试。'
+  }
+  return '当前暂无用户数据，后续注册或导入的账号会显示在这里。'
+})
 
 function isSelf(row: UserAccount) {
   return row.id === myUserId.value
@@ -27,14 +69,33 @@ function canEditEnabled(row: UserAccount) {
 }
 
 async function reload() {
+  const preserveContent = hasLoadedOnce.value
   loading.value = true
+  statusMessage.value = ''
+
+  if (!preserveContent) {
+    viewState.value = 'loading'
+  }
+
   try {
     const resp = await apiUserList()
     if (resp.code !== 0) {
-      ElMessage.error(resp.message)
+      viewState.value = 'error'
+      statusMessage.value = resp.message || '加载用户列表失败'
+      if (!preserveContent) {
+        users.value = []
+      }
       return
     }
-    users.value = resp.data ?? []
+    users.value = Array.isArray(resp.data) ? resp.data : []
+    hasLoadedOnce.value = true
+    viewState.value = 'ready'
+  } catch (error) {
+    viewState.value = 'error'
+    statusMessage.value = getRequestErrorMessage(error, '加载用户列表失败')
+    if (!preserveContent) {
+      users.value = []
+    }
   } finally {
     loading.value = false
   }
@@ -74,6 +135,22 @@ async function onEnabledChange(row: UserAccount, enabled: boolean) {
   await reload()
 }
 
+function handleRoleChange(row: UserAccount, value: string) {
+  if (value === 'SUPER_ADMIN' || value === 'ADMIN' || value === 'USER') {
+    onRoleChange(row, value)
+  }
+}
+
+function handleEnabledChange(row: UserAccount, value: boolean | string | number) {
+  onEnabledChange(row, Boolean(value))
+}
+
+function resetFilters() {
+  filters.keyword = ''
+  filters.role = 'ALL'
+  filters.enabled = 'ALL'
+}
+
 onMounted(reload)
 </script>
 
@@ -84,59 +161,93 @@ onMounted(reload)
         <h2 class="page-title">用户与权限管理</h2>
         <p class="page-subtitle">集中管理账号角色与启用状态，确保系统权限边界清晰可控。</p>
       </div>
-      <el-button :loading="loading" @click="reload">刷新</el-button>
+      <el-button type="primary" class="btn-key-solid" :loading="loading" @click="reload">刷新</el-button>
     </section>
 
-    <section class="stats-grid user-stats-grid">
-      <article class="stat-card cursor-card">
-        <div class="k">用户总数</div>
-        <div class="v">{{ users.length }}</div>
-      </article>
-      <article class="stat-card cursor-card">
-        <div class="k">超级管理员</div>
-        <div class="v">{{ users.filter((x) => x.role === 'SUPER_ADMIN').length }}</div>
-      </article>
-      <article class="stat-card cursor-card">
-        <div class="k">管理员</div>
-        <div class="v">{{ users.filter((x) => x.role === 'ADMIN').length }}</div>
-      </article>
-      <article class="stat-card cursor-card">
-        <div class="k">已停用</div>
-        <div class="v">{{ users.filter((x) => !x.enabled).length }}</div>
-      </article>
-    </section>
+    <PageStatusPanel
+      v-if="showBlockingState"
+      :tone="viewState === 'loading' ? 'loading' : 'danger'"
+      :title="stateTitle"
+      :description="stateDescription"
+      :action-text="viewState === 'error' ? '重新加载' : ''"
+      @action="reload"
+    />
 
-    <section class="cursor-card table-card">
-      <div class="section-head">
-        <div class="section-title">账号列表</div>
-        <div class="section-desc">仅具备权限的管理员可编辑角色与启用状态。</div>
-      </div>
-      <el-table class="users-table" :data="users" v-loading="loading" style="width: 100%" :max-height="560">
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="username" label="用户名" min-width="180" />
-        <el-table-column label="角色" width="240">
-          <template #default="{ row }">
-            <el-select
-              :model-value="row.role"
-              style="width: 180px"
-              :disabled="!canEditRole(row)"
-              @change="(v) => onRoleChange(row, v)"
-            >
+    <template v-else>
+      <PageStatusPanel
+        v-if="showInlineError"
+        tone="warning"
+        title="已保留上次同步的用户数据"
+        :description="statusMessage"
+        action-text="重新加载"
+        @action="reload"
+      />
+
+      <section class="stats-grid user-stats-grid">
+        <article class="stat-card cursor-card">
+          <div class="k">用户总数</div>
+          <div class="v">{{ users.length }}</div>
+        </article>
+        <article class="stat-card cursor-card">
+          <div class="k">超级管理员</div>
+          <div class="v">{{ users.filter((x) => x.role === 'SUPER_ADMIN').length }}</div>
+        </article>
+        <article class="stat-card cursor-card">
+          <div class="k">管理员</div>
+          <div class="v">{{ users.filter((x) => x.role === 'ADMIN').length }}</div>
+        </article>
+        <article class="stat-card cursor-card">
+          <div class="k">已停用</div>
+          <div class="v">{{ users.filter((x) => !x.enabled).length }}</div>
+        </article>
+      </section>
+
+      <section class="cursor-card table-card">
+        <div class="section-head user-table-head">
+          <div class="section-title">账号列表</div>
+          <div class="section-desc">仅具备权限的管理员可编辑角色与启用状态。当前显示 {{ filteredUsers.length }} / {{ users.length }} 条。</div>
+          <div class="user-filters user-filters--inline">
+            <el-input v-model="filters.keyword" clearable placeholder="搜索用户名" class="user-filter-keyword" />
+            <el-select v-model="filters.role" class="user-filter-select">
+              <el-option label="全部角色" value="ALL" />
               <el-option label="普通用户" value="USER" />
               <el-option label="管理员" value="ADMIN" />
-              <el-option v-if="authStore.isSuperAdmin.value" label="超级管理员" value="SUPER_ADMIN" />
+              <el-option label="超级管理员" value="SUPER_ADMIN" />
             </el-select>
-            <div class="hint" v-if="isSelf(row)">当前登录账号不可修改自身角色</div>
-          </template>
-        </el-table-column>
-        <el-table-column label="启用状态" width="220">
-          <template #default="{ row }">
-            <el-switch :model-value="row.enabled" :disabled="!canEditEnabled(row)" @change="(v) => onEnabledChange(row, !!v)" />
-            <div class="hint" v-if="isSelf(row)">当前登录账号不可停用自身</div>
-          </template>
-        </el-table-column>
-      </el-table>
-    </section>
+            <el-select v-model="filters.enabled" class="user-filter-select">
+              <el-option label="全部状态" value="ALL" />
+              <el-option label="已启用" value="ENABLED" />
+              <el-option label="已停用" value="DISABLED" />
+            </el-select>
+            <el-button type="primary" class="user-filters__reset btn-key-soft" @click="resetFilters">重置筛选</el-button>
+          </div>
+        </div>
+
+        <el-table v-if="filteredUsers.length" class="users-table" :data="filteredUsers" style="width: 100%" :max-height="560">
+          <el-table-column prop="id" label="ID" width="80" />
+          <el-table-column prop="username" label="用户名" min-width="180" />
+
+          <el-table-column label="角色" width="240">
+            <template #default="{ row }">
+              <el-select :model-value="row.role" style="width: 180px" :disabled="!canEditRole(row)" @change="handleRoleChange(row, $event)">
+                <el-option label="普通用户" value="USER" />
+                <el-option label="管理员" value="ADMIN" />
+                <el-option v-if="authStore.isSuperAdmin.value" label="超级管理员" value="SUPER_ADMIN" />
+              </el-select>
+              <div class="hint" v-if="isSelf(row)">当前登录账号不可修改自身角色</div>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="启用状态" width="220">
+            <template #default="{ row }">
+              <el-switch :model-value="row.enabled" :disabled="!canEditEnabled(row)" @change="handleEnabledChange(row, $event)" />
+              <div class="hint" v-if="isSelf(row)">当前登录账号不可停用自身</div>
+            </template>
+          </el-table-column>
+        </el-table>
+        <div v-else class="empty-state">{{ emptyUserMessage }}</div>
+      </section>
+    </template>
   </div>
 </template>
 
@@ -146,13 +257,62 @@ onMounted(reload)
   gap: 14px;
 }
 
-:deep(.users-table .el-table__row) {
-  height: 60px;
+.user-table-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-:deep(.users-table .el-table__cell) {
-  padding-top: 14px;
-  padding-bottom: 14px;
+.user-table-head .section-title {
+  flex: 1 1 100%;
+}
+
+.user-table-head .section-desc {
+  flex: 1 1 420px;
+  margin-top: 0;
+}
+
+.user-filters {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+.user-filters--inline {
+  margin-left: auto;
+}
+
+.user-filter-keyword {
+  width: 220px;
+}
+
+.user-filter-select {
+  width: 148px;
+}
+
+.user-filters__reset {
+  min-width: 92px;
+  height: var(--control-height);
+  padding: 0 12px;
+  border-radius: var(--radius-unified);
+}
+
+:deep(.user-filters .el-input__wrapper),
+:deep(.user-filters .el-select__wrapper) {
+  min-height: var(--control-height);
+  height: var(--control-height);
+  border-radius: var(--radius-unified);
+}
+
+:deep(.user-filters .el-input__inner),
+:deep(.user-filters .el-select__selected-item),
+:deep(.user-filters .el-select__placeholder) {
+  font-size: 14px;
+  line-height: 1.2;
 }
 
 .hint {
@@ -165,11 +325,48 @@ onMounted(reload)
   .user-stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .user-filters {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .user-filters--inline {
+    margin-left: 0;
+  }
+
+  .user-filter-keyword {
+    width: min(260px, 100%);
+  }
+
+  .user-filter-select {
+    width: 136px;
+  }
 }
 
 @media (max-width: 640px) {
   .user-stats-grid {
     grid-template-columns: 1fr;
+  }
+
+  .user-filter-keyword,
+  .user-filter-select,
+  .user-filters__reset {
+    width: calc(50% - 5px);
+    min-width: 0;
+  }
+
+  .user-filters {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 520px) {
+  .user-filter-keyword,
+  .user-filter-select,
+  .user-filters__reset {
+    width: 100%;
   }
 }
 </style>

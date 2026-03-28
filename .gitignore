@@ -1,0 +1,29 @@
+# Root workspace ignores
+
+# IDE
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Runtime artifacts
+dump.rdb
+.playwright-cli/
+output/
+
+# Backend build output
+backend/target/
+
+# Frontend dependencies and build output
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/

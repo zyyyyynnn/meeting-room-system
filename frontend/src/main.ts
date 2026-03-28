@@ -1,8 +1,24 @@
 import { createApp } from 'vue'
-import './style.css'
+import { ElMessage } from 'element-plus'
+import 'element-plus/es/components/message/style/css'
+import 'element-plus/es/components/message-box/style/css'
 import App from './App.vue'
 import router from './router'
-import ElementPlus from 'element-plus'
-import 'element-plus/dist/index.css'
+import { authStore } from './store/auth'
+import { isChunkLoadError, tryRedirectToLoginOnce, tryReloadForChunkError } from './utils/chunkRecovery'
+import './style.css'
 
-createApp(App).use(router).use(ElementPlus).mount('#app')
+window.addEventListener('unhandledrejection', (event) => {
+  if (!isChunkLoadError(event.reason)) return
+
+  event.preventDefault()
+
+  if (tryReloadForChunkError()) return
+
+  authStore.clear()
+  if (tryRedirectToLoginOnce()) return
+
+  ElMessage.error('Page assets failed to load, please refresh and try again')
+})
+
+createApp(App).use(router).mount('#app')

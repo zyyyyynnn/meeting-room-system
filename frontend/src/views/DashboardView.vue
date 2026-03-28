@@ -1,37 +1,47 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { getRequestErrorMessage } from '../api/http'
 import { apiOverviewStats } from '../api/mrs'
 import type { OverviewStats } from '../api/types'
+import PageStatusPanel from '../components/PageStatusPanel.vue'
 import { authStore } from '../store/auth'
 
+type ViewState = 'loading' | 'ready' | 'error'
+
+function createEmptyStats(): OverviewStats {
+  return {
+    totalRooms: 0,
+    totalUsers: 0,
+    todayReservations: 0,
+    myUpcomingReservations: 0,
+    pendingApprovals: 0,
+    userBreakdown: {
+      normalUsers: 0,
+      adminUsers: 0,
+      superAdminUsers: 0,
+      disabledUsers: 0,
+    },
+  }
+}
+
 const loading = ref(false)
-const stats = ref<OverviewStats>({
-  totalRooms: 0,
-  totalUsers: 0,
-  todayReservations: 0,
-  myUpcomingReservations: 0,
-  pendingApprovals: 0,
-  userBreakdown: {
-    normalUsers: 0,
-    adminUsers: 0,
-    superAdminUsers: 0,
-    disabledUsers: 0,
-  },
-})
+const viewState = ref<ViewState>('loading')
+const statusMessage = ref('')
+const hasLoadedOnce = ref(false)
+const stats = ref<OverviewStats>(createEmptyStats())
 
 const router = useRouter()
 
 const quickActions = [
   {
     title: '发起预约',
-    desc: '进入日历选择时间段快速预约',
+    desc: '进入日历选择时间段并快速提交预约',
     to: '/calendar',
   },
   {
-    title: '查看我的预约',
-    desc: '确认即将开始的会议安排',
+    title: '我的预约',
+    desc: '查看即将开始和历史预约安排',
     to: '/mine',
   },
   {
@@ -48,21 +58,51 @@ const userStructureItems = computed(() => [
   { label: '停用账号', value: stats.value.userBreakdown.disabledUsers },
 ])
 
+const isNormalUser = computed(() => authStore.state.role === 'USER')
+const showBlockingState = computed(() => !hasLoadedOnce.value && viewState.value !== 'ready')
+const showInlineError = computed(() => hasLoadedOnce.value && viewState.value === 'error')
+const stateTitle = computed(() => (viewState.value === 'loading' ? '正在加载看板数据' : '看板数据暂时不可用'))
+const stateDescription = computed(() => {
+  if (viewState.value === 'loading') {
+    return '正在汇总预约、会议室与审批概览，请稍候。'
+  }
+  return statusMessage.value || '当前无法获取看板数据，请稍后重试。'
+})
+
 function go(to: string) {
   router.push(to)
 }
 
-const isNormalUser = computed(() => authStore.state.role === 'USER')
-
 async function reload() {
+  const preserveContent = hasLoadedOnce.value
   loading.value = true
+  statusMessage.value = ''
+
+  if (!preserveContent) {
+    viewState.value = 'loading'
+  }
+
   try {
     const resp = await apiOverviewStats()
     if (resp.code !== 0) {
-      ElMessage.error(resp.message)
+      viewState.value = 'error'
+      statusMessage.value = resp.message || '看板数据暂时不可用'
+      if (!preserveContent) {
+        stats.value = createEmptyStats()
+      }
       return
     }
+
     stats.value = resp.data
+    hasLoadedOnce.value = true
+    viewState.value = 'ready'
+    statusMessage.value = ''
+  } catch (error) {
+    viewState.value = 'error'
+    statusMessage.value = getRequestErrorMessage(error, '看板数据加载失败，请稍后重试。')
+    if (!preserveContent) {
+      stats.value = createEmptyStats()
+    }
   } finally {
     loading.value = false
   }
@@ -78,90 +118,128 @@ onMounted(reload)
         <h2 class="page-title">运营看板</h2>
         <p class="page-subtitle">以克制的秩序呈现今日工作全貌，聚焦真正重要的信息。</p>
       </div>
-      <el-button type="primary" class="btn-key-solid" :loading="loading" @click="reload">刷新数据</el-button>
+      <el-button type="primary" class="btn-key-solid" :loading="loading" @click="reload">刷新</el-button>
     </section>
 
-    <template v-if="isNormalUser">
-      <section class="stats-grid normal-stats-grid">
-        <article class="stat-card cursor-card compact-card tone-mine">
-          <div class="k">我的待进行会议</div>
-          <div class="v">{{ stats.myUpcomingReservations }}</div>
-        </article>
-        <article class="stat-card cursor-card compact-card tone-today">
-          <div class="k">今日预约总量</div>
-          <div class="v">{{ stats.todayReservations }}</div>
-        </article>
-        <article class="stat-card cursor-card compact-card tone-room">
-          <div class="k">可预约会议室</div>
-          <div class="v">{{ stats.totalRooms }}</div>
-        </article>
-      </section>
-
-      <section class="cursor-card quick-actions-card">
-        <div class="section-head">
-          <div class="section-title">快捷入口</div>
-          <div class="section-desc">为普通用户保留高频操作，减少无关信息干扰。</div>
-        </div>
-        <div class="quick-actions-grid">
-          <button class="quick-action" v-for="item in quickActions" :key="item.to" @click="go(item.to)">
-            <div class="qa-title">{{ item.title }}</div>
-            <div class="qa-desc">{{ item.desc }}</div>
-            <div class="qa-footer">
-              <el-button size="small" type="primary" class="btn-key-solid" @click.stop="go(item.to)">进入</el-button>
-            </div>
-          </button>
-        </div>
-      </section>
-    </template>
+    <PageStatusPanel
+      v-if="showBlockingState"
+      :tone="viewState === 'loading' ? 'loading' : 'danger'"
+      :title="stateTitle"
+      :description="stateDescription"
+      :action-text="viewState === 'error' ? '重新加载' : ''"
+      @action="reload"
+    />
 
     <template v-else>
-      <section class="stats-grid admin-kpi-grid">
-        <article class="stat-card cursor-card compact-card tone-room">
-          <div class="k">会议室总量</div>
-          <div class="v">{{ stats.totalRooms }}</div>
-        </article>
-        <article class="stat-card cursor-card compact-card tone-today">
-          <div class="k">今日预约</div>
-          <div class="v">{{ stats.todayReservations }}</div>
-        </article>
-        <article class="stat-card cursor-card compact-card tone-mine">
-          <div class="k">我的待进行会议</div>
-          <div class="v">{{ stats.myUpcomingReservations }}</div>
-        </article>
-        <article class="stat-card cursor-card compact-card tone-pending">
-          <div class="k">待审批预约</div>
-          <div class="v">{{ stats.pendingApprovals }}</div>
-        </article>
-      </section>
+      <PageStatusPanel
+        v-if="showInlineError"
+        tone="warning"
+        title="已保留上次加载的数据"
+        :description="statusMessage"
+        action-text="重新加载"
+        @action="reload"
+      />
 
-      <section class="cursor-card quick-actions-card">
-        <div class="section-head">
-          <div class="section-title">快捷入口</div>
-          <div class="section-desc">优先展示高频管理动作，减少路径跳转成本。</div>
-        </div>
-        <div class="quick-actions-grid">
-          <button class="quick-action" v-for="item in quickActions" :key="item.to" @click="go(item.to)">
-            <div class="qa-title">{{ item.title }}</div>
-            <div class="qa-desc">{{ item.desc }}</div>
-            <div class="qa-footer">
-              <el-button size="small" type="primary" class="btn-key-solid" @click.stop="go(item.to)">进入</el-button>
-            </div>
-          </button>
-        </div>
-      </section>
+      <template v-if="isNormalUser">
+        <section class="stats-grid normal-stats-grid">
+          <article class="stat-card cursor-card compact-card tone-mine">
+            <div class="k">我的待进行会议</div>
+            <div class="v">{{ stats.myUpcomingReservations }}</div>
+          </article>
+          <article class="stat-card cursor-card compact-card tone-today">
+            <div class="k">今日预约总量</div>
+            <div class="v">{{ stats.todayReservations }}</div>
+          </article>
+          <article class="stat-card cursor-card compact-card tone-room">
+            <div class="k">可预约会议室</div>
+            <div class="v">{{ stats.totalRooms }}</div>
+          </article>
+        </section>
 
-      <section class="cursor-card table-card user-structure-card">
-        <div class="section-head">
-          <div class="section-title">用户结构</div>
-          <div class="section-desc">系统用户总数 {{ stats.totalUsers }}，便于跟踪权限结构健康度。</div>
-        </div>
-        <div class="user-breakdown-grid">
-          <div class="breakdown-item" v-for="item in userStructureItems" :key="item.label">
-            <span class="label">{{ item.label }}</span>
-            <span class="num">{{ item.value }}</span>
+        <section class="cursor-card quick-actions-card">
+          <div class="section-head">
+            <div class="section-title">快捷入口</div>
+            <div class="section-desc">为普通用户保留高频操作，减少无关信息干扰。</div>
           </div>
-        </div>
-      </section>
+          <div class="quick-actions-grid">
+            <article
+              class="quick-action"
+              role="button"
+              tabindex="0"
+              v-for="item in quickActions"
+              :key="item.to"
+              @click="go(item.to)"
+              @keydown.enter.prevent="go(item.to)"
+              @keydown.space.prevent="go(item.to)"
+            >
+              <div class="qa-title">{{ item.title }}</div>
+              <div class="qa-desc">{{ item.desc }}</div>
+              <div class="qa-footer">
+                <el-button size="small" type="primary" class="btn-key-solid" @click.stop="go(item.to)">进入</el-button>
+              </div>
+            </article>
+          </div>
+        </section>
+      </template>
+
+      <template v-else>
+        <section class="stats-grid admin-kpi-grid">
+          <article class="stat-card cursor-card compact-card tone-room">
+            <div class="k">会议室总量</div>
+            <div class="v">{{ stats.totalRooms }}</div>
+          </article>
+          <article class="stat-card cursor-card compact-card tone-today">
+            <div class="k">今日预约</div>
+            <div class="v">{{ stats.todayReservations }}</div>
+          </article>
+          <article class="stat-card cursor-card compact-card tone-mine">
+            <div class="k">我的待进行会议</div>
+            <div class="v">{{ stats.myUpcomingReservations }}</div>
+          </article>
+          <article class="stat-card cursor-card compact-card tone-pending">
+            <div class="k">待审批预约</div>
+            <div class="v">{{ stats.pendingApprovals }}</div>
+          </article>
+        </section>
+
+        <section class="cursor-card quick-actions-card">
+          <div class="section-head">
+            <div class="section-title">快捷入口</div>
+            <div class="section-desc">优先展示高频管理动作，减少路径跳转成本。</div>
+          </div>
+          <div class="quick-actions-grid">
+            <article
+              class="quick-action"
+              role="button"
+              tabindex="0"
+              v-for="item in quickActions"
+              :key="item.to"
+              @click="go(item.to)"
+              @keydown.enter.prevent="go(item.to)"
+              @keydown.space.prevent="go(item.to)"
+            >
+              <div class="qa-title">{{ item.title }}</div>
+              <div class="qa-desc">{{ item.desc }}</div>
+              <div class="qa-footer">
+                <el-button size="small" type="primary" class="btn-key-solid" @click.stop="go(item.to)">进入</el-button>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="cursor-card table-card user-structure-card">
+          <div class="section-head">
+            <div class="section-title">用户结构</div>
+            <div class="section-desc">系统用户总数 {{ stats.totalUsers }}，便于跟踪权限结构健康度。</div>
+          </div>
+          <div class="user-breakdown-grid">
+            <div class="breakdown-item" v-for="item in userStructureItems" :key="item.label">
+              <span class="label">{{ item.label }}</span>
+              <span class="num">{{ item.value }}</span>
+            </div>
+          </div>
+        </section>
+      </template>
     </template>
   </div>
 </template>
@@ -172,16 +250,7 @@ onMounted(reload)
 }
 
 .dashboard-hero {
-  border: 1px solid var(--line-soft);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.3));
-}
-
-.btn-key-solid {
-  --el-button-bg-color: var(--accent) !important;
-  --el-button-border-color: var(--accent) !important;
-  --el-button-text-color: var(--bg-card-strong) !important;
-  --el-button-hover-bg-color: var(--accent-strong) !important;
-  --el-button-hover-border-color: var(--accent-strong) !important;
+  min-height: 118px;
 }
 
 .admin-kpi-grid {
@@ -201,23 +270,15 @@ onMounted(reload)
 }
 
 .compact-card {
-  min-height: 132px;
+  min-height: 136px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 16px 18px;
+  padding: 18px;
 }
 
 .user-structure-card {
   padding: 20px;
-}
-
-.tone-room,
-.tone-today,
-.tone-mine,
-.tone-pending {
-  background: rgba(255, 255, 255, 0.42);
-  border-color: var(--line-soft);
 }
 
 .tone-users {
@@ -230,7 +291,7 @@ onMounted(reload)
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  padding-bottom: 10px;
+  padding-bottom: 12px;
   border-bottom: 1px dashed var(--line-soft);
 }
 
@@ -243,15 +304,30 @@ onMounted(reload)
 }
 
 .breakdown-item {
-  border: 1px solid var(--line-soft);
-  border-radius: 10px;
-  padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.45);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklab, var(--line-soft), #a89478 14%);
+  border-radius: calc(var(--radius-unified) + 2px);
+  padding: 14px 14px 13px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(247, 242, 234, 0.66)),
+    var(--bg-card);
   display: flex;
   flex-direction: column;
   gap: 5px;
   min-height: 84px;
   justify-content: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.breakdown-item::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(122, 104, 82, 0.22), transparent);
 }
 
 .breakdown-item .label {
@@ -277,47 +353,89 @@ onMounted(reload)
 }
 
 .quick-action {
-  border: 1px solid var(--line-soft);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.48);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklab, var(--line-soft), #a89478 14%);
+  border-radius: calc(var(--radius-unified) + 2px);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(248, 244, 237, 0.66)),
+    var(--bg-card);
   color: var(--text-main);
   text-align: left;
-  padding: 14px 16px;
+  padding: 16px;
+  min-height: 146px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 8px 18px rgba(25, 21, 17, 0.05);
+  transition:
+    box-shadow 0.16s ease,
+    border-color 0.16s ease,
+    background-color 0.16s ease;
+}
+
+.quick-action::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(118, 98, 78, 0.28);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.22s ease;
 }
 
 .quick-action:hover {
-  border-color: rgba(63, 83, 103, 0.35);
-  background: rgba(63, 83, 103, 0.08);
+  border-color: rgba(147, 125, 101, 0.26);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(247, 242, 234, 0.72)),
+    var(--bg-card);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.76),
+    0 10px 22px rgba(25, 21, 17, 0.08);
+}
+
+.quick-action:hover::after {
+  transform: scaleX(1);
+}
+
+.quick-action:active {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 4px 10px rgba(25, 21, 17, 0.08);
+}
+
+.quick-action:focus-visible {
+  outline: none;
+  border-color: rgba(31, 31, 31, 0.42);
+  box-shadow: 0 0 0 3px rgba(31, 31, 31, 0.18);
+}
+
+.quick-action:focus-visible::after {
+  transform: scaleX(1);
 }
 
 .qa-footer {
-  margin-top: 4px;
-}
-
-.btn-key-solid {
-  --el-button-bg-color: var(--accent) !important;
-  --el-button-border-color: var(--accent) !important;
-  --el-button-text-color: #f7f9fc !important;
-  --el-button-hover-bg-color: var(--accent-strong) !important;
-  --el-button-hover-border-color: var(--accent-strong) !important;
-  --el-button-active-bg-color: #2e4356 !important;
-  --el-button-active-border-color: #2e4356 !important;
+  margin-top: auto;
+  padding-top: 6px;
 }
 
 .qa-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
+  line-height: 1.42;
 }
 
 .qa-desc {
-  margin-top: 6px;
   font-size: 13px;
   color: var(--text-muted);
-  line-height: 1.6;
+  line-height: 1.68;
 }
 
 @media (max-width: 1180px) {

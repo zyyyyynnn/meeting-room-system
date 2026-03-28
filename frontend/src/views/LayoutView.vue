@@ -1,19 +1,19 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   Bell,
   Calendar,
   DataBoard,
   Files,
   HomeFilled,
-  House,
   Key,
   Operation,
   SwitchButton,
 } from '@element-plus/icons-vue'
 import { apiNotifications } from '../api/mrs'
+import AuthMeshLogo from '../components/AuthMeshLogo.vue'
 import { authStore } from '../store/auth'
 
 const router = useRouter()
@@ -24,12 +24,17 @@ const noticeDrawerOpen = ref(false)
 const notifications = ref<string[]>([])
 const noticeLoading = ref(false)
 
+const noticeCount = computed(() => notifications.value.length)
+
 async function openNotifications() {
   noticeDrawerOpen.value = true
   noticeLoading.value = true
   try {
     const resp = await apiNotifications()
-    if (resp.code !== 0) return ElMessage.error(resp.message)
+    if (resp.code !== 0) {
+      ElMessage.error(resp.message)
+      return
+    }
     notifications.value = Array.isArray(resp.data) ? resp.data : []
   } finally {
     noticeLoading.value = false
@@ -46,7 +51,9 @@ function logout() {
   <div class="workspace-shell">
     <header class="workspace-top">
       <div class="top-brand">
-        <div class="brand-mark"><el-icon><House /></el-icon></div>
+        <div class="brand-mark">
+          <AuthMeshLogo />
+        </div>
         <div>
           <div class="brand-title">会议室预约</div>
           <div class="brand-sub">Meeting Room System</div>
@@ -93,7 +100,15 @@ function logout() {
       <div class="top-actions">
         <div class="header-user">
           <span class="user-name">{{ authStore.state.username }}</span>
-          <span class="user-role">{{ authStore.state.role === 'SUPER_ADMIN' ? '超级管理员' : authStore.state.role === 'ADMIN' ? '管理员' : '普通用户' }}</span>
+          <span class="user-role">
+            {{
+              authStore.state.role === 'SUPER_ADMIN'
+                ? '超级管理员'
+                : authStore.state.role === 'ADMIN'
+                  ? '管理员'
+                  : '普通用户'
+            }}
+          </span>
         </div>
         <el-button class="logout-btn" @click="logout" text>
           <el-icon><SwitchButton /></el-icon>
@@ -102,16 +117,28 @@ function logout() {
       </div>
     </header>
 
-    <el-button class="notice-float-btn" @click="openNotifications">
-      <el-icon><Bell /></el-icon>
-      <span>通知</span>
-    </el-button>
+    <button class="notice-float-btn" type="button" @click="openNotifications" aria-label="Open notifications">
+      <el-icon class="notice-float-btn__icon"><Bell /></el-icon>
+      <span v-if="noticeCount" class="notice-float-btn__badge">{{ noticeCount }}</span>
+    </button>
 
-    <el-drawer v-model="noticeDrawerOpen" title="通知中心" size="min(420px, 92vw)">
+    <el-drawer v-model="noticeDrawerOpen" title="通知中心" size="min(440px, 92vw)">
       <div v-loading="noticeLoading" class="notice-list">
+        <div class="notice-panel-head">
+          <div>
+            <div class="notice-panel-title">最新提醒</div>
+            <div class="notice-panel-subtitle">预约状态、审批结果和系统消息会集中展示在这里。</div>
+          </div>
+          <div class="notice-panel-count">{{ noticeCount }} 条</div>
+        </div>
+
         <el-empty v-if="!notifications.length && !noticeLoading" description="暂无通知" />
+
         <div v-else class="notice-items">
-          <div class="notice-item" v-for="(n, idx) in notifications" :key="`notice-${idx}`">{{ n }}</div>
+          <article class="notice-item" v-for="(item, idx) in notifications" :key="`notice-${idx}`">
+            <span class="notice-item__index">{{ idx + 1 }}</span>
+            <span class="notice-item__text">{{ item }}</span>
+          </article>
         </div>
       </div>
     </el-drawer>
@@ -127,107 +154,125 @@ function logout() {
 <style scoped>
 .workspace-shell {
   min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--bg-base);
+  overflow: hidden;
+  position: relative;
+  background: transparent;
+}
+
+.workspace-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 14% 20%, var(--auth-shell-accent-1) 0, transparent 40%),
+    radial-gradient(circle at 86% 80%, var(--auth-shell-accent-2) 0, transparent 44%),
+    linear-gradient(165deg, var(--auth-shell-glow), transparent 56%);
 }
 
 .workspace-top {
   height: 76px;
   padding: 0 30px;
   border-bottom: 1px solid var(--line-soft);
-  background: var(--bg-elevated);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.84) 0%, rgba(251, 248, 242, 0.74) 52%, rgba(246, 241, 232, 0.66) 100%),
+    var(--bg-card);
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: 'brand nav actions';
   align-items: center;
   gap: 18px;
   position: sticky;
   top: 0;
   z-index: 20;
+  box-shadow: 0 6px 14px rgba(35, 30, 26, 0.05);
+}
+
+.workspace-top::after {
+  content: '';
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(70, 58, 44, 0.24), transparent);
 }
 
 .top-brand {
+  grid-area: brand;
   display: flex;
   align-items: center;
   gap: 14px;
+  min-width: 0;
 }
 
 .brand-mark {
-  width: 38px;
-  height: 38px;
-  border-radius: 11px;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-unified);
   display: grid;
   place-items: center;
   border: 1px solid var(--line-soft);
-  background: var(--bg-card);
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.56), transparent 48%),
+    linear-gradient(150deg, rgba(95, 80, 63, 0.12), rgba(255, 255, 255, 0.42));
+}
+
+.brand-mark :deep(.auth-mesh-logo) {
+  --logo-size: 30px;
+  border: none;
+  box-shadow: none;
 }
 
 .brand-title {
   font-size: 16px;
   font-weight: 700;
   color: var(--text-main);
+  white-space: nowrap;
 }
 
 .brand-sub {
   font-size: 12px;
   color: var(--text-weak);
-}
-
-.top-slot {
-  min-width: 0;
-}
-
-.notice-float-btn {
-  position: fixed;
-  right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 30;
-  height: 40px;
-  min-width: 96px;
-  border-radius: 999px;
-  border: 1px solid var(--line-soft);
-  background: var(--bg-card);
-  color: var(--text-main);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.notice-list {
-  min-height: 220px;
-}
-
-.notice-items {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.notice-item {
-  border: 1px solid var(--line-soft);
-  border-radius: 10px;
-  padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.42);
-  color: var(--text-muted);
-  font-size: 13px;
-  line-height: 1.65;
+  white-space: nowrap;
 }
 
 .top-nav {
+  grid-area: nav;
+  min-width: 0;
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 10px;
   overflow-x: auto;
+  overflow-y: hidden;
   padding: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(73, 63, 48, 0.28) transparent;
+}
+
+.top-nav::-webkit-scrollbar {
+  height: 6px;
+}
+
+.top-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.top-nav::-webkit-scrollbar-thumb {
+  background: rgba(73, 63, 48, 0.28);
+  border-radius: 999px;
 }
 
 .nav-chip {
   height: 40px;
   min-width: 126px;
-  border-radius: 999px;
+  border-radius: var(--radius-unified);
   border: 1px solid var(--line-soft);
   background: var(--bg-card);
   color: var(--text-muted);
@@ -237,6 +282,38 @@ function logout() {
   justify-content: center;
   gap: 8px;
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition:
+    box-shadow 0.16s ease,
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    color 0.16s ease;
+  scroll-snap-align: start;
+}
+
+.nav-chip::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 6px;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.22s ease;
+  opacity: 0.82;
+}
+
+.nav-chip:hover {
+  border-color: var(--line-strong);
+  box-shadow: 0 5px 12px rgba(28, 24, 19, 0.08);
+}
+
+.nav-chip:active {
+  box-shadow: 0 2px 6px rgba(28, 24, 19, 0.08);
 }
 
 .nav-chip.active {
@@ -245,20 +322,29 @@ function logout() {
   border-color: var(--accent);
 }
 
+.nav-chip.active::after {
+  transform: scaleX(1);
+}
+
 .top-actions {
+  grid-area: actions;
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 10px;
+  justify-self: end;
 }
 
 .header-user {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
+  height: 40px;
+  padding: 0 12px;
   border: 1px solid var(--line-soft);
-  border-radius: 999px;
+  border-radius: var(--radius-unified);
   background: var(--bg-card);
+  box-sizing: border-box;
 }
 
 .user-name {
@@ -275,31 +361,208 @@ function logout() {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 36px;
+  height: 40px;
   padding: 0 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-unified);
   border: 1px solid var(--line-soft);
   background: var(--bg-card);
+  box-sizing: border-box;
+  transition:
+    box-shadow 0.16s ease,
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.logout-btn:hover {
+  border-color: var(--line-strong);
+  box-shadow: 0 5px 12px rgba(28, 24, 19, 0.08);
+}
+
+.logout-btn:active {
+  box-shadow: 0 2px 6px rgba(28, 24, 19, 0.08);
+}
+
+.nav-chip:focus-visible,
+.logout-btn:focus-visible,
+.notice-float-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(31, 31, 31, 0.18);
+}
+
+.notice-float-btn {
+  position: fixed;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 30;
+  width: 54px;
+  height: 54px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-unified);
+  background: var(--bg-card);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    box-shadow 0.16s ease,
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.notice-float-btn:hover {
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg-card-strong);
+}
+
+.notice-float-btn:active {
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+}
+
+.notice-float-btn__icon {
+  font-size: 21px;
+  color: currentColor;
+}
+
+.notice-float-btn__badge {
+  position: absolute;
+  right: -4px;
+  top: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-unified);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: var(--bg-card-strong);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.notice-list {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.notice-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in oklab, var(--line-soft), #a89478 14%);
+  border-radius: calc(var(--radius-unified) + 2px);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(248, 244, 237, 0.68)),
+    var(--bg-card);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.notice-panel-title {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text-main);
+}
+
+.notice-panel-subtitle {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.64;
+  color: var(--text-weak);
+}
+
+.notice-panel-count {
+  padding: 6px 10px;
+  border-radius: calc(var(--radius-unified) + 2px);
+  border: 1px solid color-mix(in oklab, var(--line-soft), #a89478 16%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(247, 242, 234, 0.72));
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.notice-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.notice-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 14px;
+  align-items: flex-start;
+  border: 1px solid color-mix(in oklab, var(--line-soft), #a89478 14%);
+  border-radius: calc(var(--radius-unified) + 2px);
+  padding: 14px 15px 14px 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(248, 244, 237, 0.66)),
+    var(--bg-card);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.notice-item::after {
+  content: '';
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(122, 104, 82, 0.22), transparent);
+}
+
+.notice-item__index {
+  width: 34px;
+  height: 34px;
+  border-radius: calc(var(--radius-unified) + 2px);
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(121, 102, 82, 0.22);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(247, 242, 234, 0.72));
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.notice-item__text {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.72;
 }
 
 .workspace-body {
   flex: 1;
   min-height: 0;
-  padding: 0 24px 24px;
+  display: flex;
+  overflow: hidden;
+  padding: 0 0 24px;
+  position: relative;
+  z-index: 1;
 }
 
 .workspace-main {
+  flex: 1;
+  min-height: 0;
   min-width: 0;
-  overflow: auto;
-  padding: 24px 0 0;
-}
-
-.rail-progress .rail-list {
-  margin: 8px 0 0;
-  padding-left: 16px;
-  color: var(--text-muted);
-  font-size: 12px;
-  line-height: 1.7;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 24px 24px 0;
 }
 
 .workspace-main :deep(.page-wrap) {
@@ -307,18 +570,113 @@ function logout() {
   margin: 0 auto;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1260px) {
   .workspace-top {
     padding: 0 16px;
     gap: 10px;
   }
 
+  .top-nav {
+    justify-content: flex-start;
+    scroll-snap-type: x proximity;
+  }
+
+  .nav-chip {
+    min-width: 116px;
+    padding: 0 12px;
+  }
+}
+
+@media (max-width: 980px) {
+  .workspace-top {
+    height: auto;
+    padding: 10px 12px 12px;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'brand actions'
+      'nav nav';
+    align-items: start;
+    gap: 10px;
+  }
+
+  .top-brand {
+    min-width: 0;
+  }
+
+  .top-actions {
+    justify-self: end;
+  }
+
+  .top-nav {
+    width: 100%;
+    padding: 2px 2px 6px;
+  }
+
+  .workspace-body {
+    padding: 0 0 16px;
+  }
+
+  .workspace-main {
+    padding: 14px 12px 0;
+  }
+}
+
+@media (max-width: 1100px) {
   .top-actions {
     gap: 8px;
   }
 
   .header-user {
     padding: 5px 8px;
+  }
+
+  .top-nav {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .brand-sub {
+    display: none;
+  }
+
+  .nav-chip {
+    height: 36px;
+    min-width: 104px;
+    font-size: 13px;
+  }
+
+  .nav-chip span {
+    white-space: nowrap;
+  }
+
+  .header-user {
+    max-width: 150px;
+    overflow: hidden;
+  }
+
+  .user-name {
+    display: inline-block;
+    max-width: 82px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .user-role {
+    display: none;
+  }
+}
+
+@media (max-width: 820px) {
+  .notice-float-btn {
+    right: 10px;
+    width: 48px;
+    height: 48px;
+  }
+
+  .notice-float-btn__icon {
+    font-size: 19px;
   }
 }
 </style>
