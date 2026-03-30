@@ -1,29 +1,45 @@
 ﻿# 会议室预约与资源协调系统
 
-一个基于前后端分离架构的会议室预约系统，支持登录注册、会议室查询、日历视图预约、我的预约管理、通知查看，以及管理员审批和用户管理。
+一个基于前后端分离架构的会议室预约系统，支持登录注册、运营看板、会议室查询、日历视图预约、我的预约管理、通知查看，以及管理员审批和用户管理。当前前端已经收敛为统一的浅色办公主题，并围绕“安静、克制、有秩序”的内部员工工作台体验做了整体重构。
 
 ## 技术栈
 
 - 后端：Spring Boot 3、Spring Security、MyBatis-Plus、MySQL 8、Redis、JWT
 - 前端：Vue 3、TypeScript、Vite、Element Plus、FullCalendar
+- 动态视觉：`@paper-design/shaders-react`、React 19、React DOM 19（仅用于动态 logo 渲染）
 - 开发辅助：Windows 一键启动脚本、前端运行时容错、统一状态反馈组件
 
 ## 核心能力
 
 - 用户登录、注册与基于角色的权限控制
+- 所有角色统一登录落点：`/dashboard` 运营看板
 - 会议室列表、状态管理、维护时段管理
 - 日历视图预约、批量周预约、冲突建议与占用查看
 - 我的预约、取消预约、删除预约、审计日志
 - 管理员预约审批、撤销审批、运营看板、用户管理
 - 统一的页面状态反馈：加载中、空态、错误态、后端未就绪提示
+- 统一的浅色主题视觉系统：冷白石墨卡片、统一表格/筛选工具栏、登录态与工作台一致的设计语言
+- 顶层路由切换、工作台内部页切换和页面分段入场动效，兼容 `prefers-reduced-motion`
 
 ## 角色说明
 
 | 角色 | 说明 | 默认首页 |
 | --- | --- | --- |
 | `USER` | 普通用户，可预约、查看和管理自己的预约 | `/dashboard` |
-| `ADMIN` | 管理员，可处理预约审批和查看看板 | `/admin/approvals` |
-| `SUPER_ADMIN` | 超级管理员，可管理用户与权限，同时具备管理员能力 | `/admin/users` |
+| `ADMIN` | 管理员，可处理预约审批、查看看板，并进入管理页面 | `/dashboard` |
+| `SUPER_ADMIN` | 超级管理员，可管理用户与权限，同时具备管理员能力 | `/dashboard` |
+
+## 当前界面基线
+
+当前前端默认遵循以下界面规则：
+
+- 固定浅色主题，不跟随系统切换暗色模式
+- 登录页、工作台壳层、列表页、日历页、通知与状态面板使用同一套视觉 token
+- 运营看板是所有角色登录后的统一入口，管理动作通过顶部导航进入
+- 列表类页面优先采用“标题说明 + 工具栏筛选 + 表格”的统一卡片排布
+- 对标题、导航、按钮、筛选值和表头做了单行保护，尽量避免文字换行破坏排版
+
+更细的前端设计上下文见 [.impeccable.md](/E:/私有云/Personal%20project/.impeccable.md)。
 
 ## 环境要求
 
@@ -135,13 +151,13 @@ npm run dev:recover
 
 - [main.ts](/E:/私有云/Personal%20project/frontend/src/main.ts)：前端入口文件
 - [App.vue](/E:/私有云/Personal%20project/frontend/src/App.vue)：最外层应用壳，承载路由视图
-- [style.css](/E:/私有云/Personal%20project/frontend/src/style.css)：全局视觉样式，包括颗粒背景、卡片、表格、弹窗、按钮等统一设计语言
+- [style.css](/E:/私有云/Personal%20project/frontend/src/style.css)：全局视觉样式，包括固定浅色主题、颗粒背景、卡片、表格、弹窗、按钮、转场和抗换行细节规则
 
 `frontend/src/views/` 页面目录：
 
 - [LoginView.vue](/E:/私有云/Personal%20project/frontend/src/views/LoginView.vue)：登录页
 - [RegisterView.vue](/E:/私有云/Personal%20project/frontend/src/views/RegisterView.vue)：注册页
-- [LayoutView.vue](/E:/私有云/Personal%20project/frontend/src/views/LayoutView.vue)：登录后的整体工作台外壳、顶部导航和通知抽屉
+- [LayoutView.vue](/E:/私有云/Personal%20project/frontend/src/views/LayoutView.vue)：登录后的整体工作台外壳、顶部导航、通知抽屉与内页转场容器
 - [DashboardView.vue](/E:/私有云/Personal%20project/frontend/src/views/DashboardView.vue)：运营看板首页
 - [CalendarView.vue](/E:/私有云/Personal%20project/frontend/src/views/CalendarView.vue)：会议预约日历页
 - [RoomsView.vue](/E:/私有云/Personal%20project/frontend/src/views/RoomsView.vue)：会议室管理页
@@ -152,7 +168,7 @@ npm run dev:recover
 
 `frontend/src/components/` 复用组件目录：
 
-- [AuthMeshLogo.vue](/E:/私有云/Personal%20project/frontend/src/components/AuthMeshLogo.vue)：动态 logo 组件，内部使用 React shader 渲染效果
+- [AuthMeshLogo.vue](/E:/私有云/Personal%20project/frontend/src/components/AuthMeshLogo.vue)：动态 logo 组件，内部使用 React shader 渲染效果，并已调整为与当前灰阶主题一致的配色
 - [PageStatusPanel.vue](/E:/私有云/Personal%20project/frontend/src/components/PageStatusPanel.vue)：统一的加载中、错误、空态、服务未就绪提示组件
 
 `frontend/src/api/` 接口层：
@@ -172,7 +188,7 @@ npm run dev:recover
 
 `frontend/src/utils/` 工具层：
 
-- [authRoute.ts](/E:/私有云/Personal%20project/frontend/src/utils/authRoute.ts)：根据角色计算默认首页
+- [authRoute.ts](/E:/私有云/Personal%20project/frontend/src/utils/authRoute.ts)：统一默认首页解析（当前所有角色都会进入 `/dashboard`）
 - [chunkRecovery.ts](/E:/私有云/Personal%20project/frontend/src/utils/chunkRecovery.ts)：处理路由懒加载失败后的恢复逻辑
 
 `frontend/src/assets/` 静态素材目录：
@@ -214,6 +230,7 @@ npm run dev:recover
    - `backend/src/main/java/com/example/mrs/security/`
 2. 全站视觉与页面样式：
    - [frontend/src/style.css](/E:/私有云/Personal%20project/frontend/src/style.css)
+   - [.impeccable.md](/E:/私有云/Personal%20project/.impeccable.md)
    - `frontend/src/views/*.vue`
 3. 预约、审批、会议室业务：
    - [frontend/src/api/mrs.ts](/E:/私有云/Personal%20project/frontend/src/api/mrs.ts)
