@@ -159,7 +159,6 @@ onMounted(reload)
         <section class="cursor-card quick-actions-card">
           <div class="section-head">
             <div class="section-title">快捷入口</div>
-            <div class="section-desc">为普通用户保留高频操作，减少无关信息干扰。</div>
           </div>
           <div class="quick-actions-grid">
             <article
@@ -205,7 +204,6 @@ onMounted(reload)
         <section class="cursor-card quick-actions-card">
           <div class="section-head">
             <div class="section-title">快捷入口</div>
-            <div class="section-desc">优先展示高频管理动作，减少路径跳转成本。</div>
           </div>
           <div class="quick-actions-grid">
             <article
@@ -230,7 +228,6 @@ onMounted(reload)
         <section class="cursor-card table-card user-structure-card">
           <div class="section-head">
             <div class="section-title">用户结构</div>
-            <div class="section-desc">系统用户总数 {{ stats.totalUsers }}，便于跟踪权限结构健康度。</div>
           </div>
           <div class="user-breakdown-grid">
             <div class="breakdown-item" v-for="item in userStructureItems" :key="item.label">
@@ -306,11 +303,11 @@ onMounted(reload)
 .breakdown-item {
   position: relative;
   overflow: hidden;
-  border: 1px solid color-mix(in oklab, var(--line-soft), #a89478 14%);
+  border: 1px solid var(--nested-surface-border);
   border-radius: calc(var(--radius-unified) + 2px);
   padding: 14px 14px 13px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(247, 242, 234, 0.66)),
+    linear-gradient(180deg, var(--nested-surface-top), var(--nested-surface-bottom)),
     var(--bg-card);
   display: flex;
   flex-direction: column;
@@ -327,7 +324,7 @@ onMounted(reload)
   right: 14px;
   top: 0;
   height: 1px;
-  background: linear-gradient(90deg, rgba(122, 104, 82, 0.22), transparent);
+  background: linear-gradient(90deg, var(--nested-surface-rule), transparent);
 }
 
 .breakdown-item .label {
@@ -355,10 +352,10 @@ onMounted(reload)
 .quick-action {
   position: relative;
   overflow: hidden;
-  border: 1px solid color-mix(in oklab, var(--line-soft), #a89478 14%);
+  border: 1px solid var(--nested-surface-border);
   border-radius: calc(var(--radius-unified) + 2px);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(248, 244, 237, 0.66)),
+    linear-gradient(180deg, var(--nested-surface-top), var(--nested-surface-bottom)),
     var(--bg-card);
   color: var(--text-main);
   text-align: left;
@@ -370,11 +367,12 @@ onMounted(reload)
   gap: 8px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    0 8px 18px rgba(25, 21, 17, 0.05);
+    var(--nested-surface-shadow);
   transition:
-    box-shadow 0.16s ease,
-    border-color 0.16s ease,
-    background-color 0.16s ease;
+    transform var(--motion-fast) var(--motion-ease-emphasis),
+    box-shadow var(--motion-base) var(--motion-ease-out),
+    border-color var(--motion-fast) var(--motion-ease-out),
+    background-color var(--motion-fast) var(--motion-ease-out);
 }
 
 .quick-action::after {
@@ -385,20 +383,21 @@ onMounted(reload)
   bottom: 0;
   height: 2px;
   border-radius: 999px;
-  background: rgba(118, 98, 78, 0.28);
+  background: rgba(78, 86, 96, 0.3);
   transform: scaleX(0);
   transform-origin: center;
-  transition: transform 0.22s ease;
+  transition: transform var(--motion-base) var(--motion-ease-emphasis);
 }
 
 .quick-action:hover {
-  border-color: rgba(147, 125, 101, 0.26);
+  transform: translate3d(0, -2px, 0);
+  border-color: rgba(31, 31, 31, 0.16);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(247, 242, 234, 0.72)),
+    linear-gradient(180deg, rgba(252, 254, 255, 0.96), var(--nested-surface-bottom-strong)),
     var(--bg-card);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.76),
-    0 10px 22px rgba(25, 21, 17, 0.08);
+    0 10px 22px rgba(20, 24, 28, 0.08);
 }
 
 .quick-action:hover::after {
@@ -406,15 +405,16 @@ onMounted(reload)
 }
 
 .quick-action:active {
+  transform: translate3d(0, 0, 0) scale(0.99);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.7),
-    0 4px 10px rgba(25, 21, 17, 0.08);
+    0 4px 10px rgba(20, 24, 28, 0.08);
 }
 
 .quick-action:focus-visible {
   outline: none;
   border-color: rgba(31, 31, 31, 0.42);
-  box-shadow: 0 0 0 3px rgba(31, 31, 31, 0.18);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .quick-action:focus-visible::after {

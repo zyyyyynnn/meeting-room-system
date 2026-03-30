@@ -85,7 +85,7 @@ async function submit() {
 
         <div class="auth-panel">
           <h1 class="scene-title">登录系统</h1>
-          <p class="form-subtitle">登录后将自动进入你的工作台</p>
+          <p class="form-subtitle">登录后将自动进入运营看板</p>
           <PageStatusPanel
             v-if="showServiceStatus"
             class="login-status-panel"
@@ -117,7 +117,7 @@ async function submit() {
             </el-form-item>
 
             <div class="auth-extra">
-              <span>还没有账号？</span>
+              <span class="auth-extra-label">还没有账号？</span>
               <el-button text @click="$router.push('/register')">立即注册</el-button>
             </div>
           </el-form>
@@ -130,14 +130,14 @@ async function submit() {
 <style scoped>
 .login-shell {
   --auth-panel-bg: rgba(255, 255, 255, 0.5);
-  --auth-visual-bg: rgba(248, 244, 237, 0.72);
+  --auth-visual-bg: rgba(243, 246, 249, 0.72);
   --auth-divider: rgba(44, 44, 44, 0.14);
 }
 
 .login-shell .auth-single {
-  border-color: rgba(136, 118, 96, 0.18);
+  border-color: rgba(38, 38, 38, 0.1);
   box-shadow:
-    0 26px 54px rgba(30, 25, 21, 0.18),
+    0 26px 54px rgba(20, 24, 28, 0.16),
     inset 0 1px 0 rgba(255, 255, 255, 0.76);
 }
 
@@ -146,7 +146,7 @@ async function submit() {
 }
 
 .login-shell .scene-title {
-  letter-spacing: 0.18px;
+  letter-spacing: -0.03em;
 }
 
 .login-shell .form-subtitle {

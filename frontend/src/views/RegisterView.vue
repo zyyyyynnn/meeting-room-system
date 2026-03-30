@@ -70,7 +70,7 @@ async function submit() {
             </el-form-item>
 
             <div class="auth-extra">
-              <span>已有账号？</span>
+              <span class="auth-extra-label">已有账号？</span>
               <el-button text @click="$router.push('/login')">去登录</el-button>
             </div>
           </el-form>
@@ -86,7 +86,7 @@ async function submit() {
   --auth-shell-accent-2: rgba(66, 84, 76, 0.11);
   --auth-shell-glow: rgba(255, 255, 255, 0.36);
   --auth-panel-bg: rgba(255, 255, 255, 0.46);
-  --auth-visual-bg: rgba(247, 243, 235, 0.68);
+  --auth-visual-bg: rgba(243, 246, 249, 0.7);
   --auth-divider: rgba(40, 40, 40, 0.13);
 }
 

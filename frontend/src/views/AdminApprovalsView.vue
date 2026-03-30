@@ -310,9 +310,9 @@ onMounted(reload)
   color: var(--text-muted);
   line-height: 1.72;
   padding: 12px 14px 12px 48px;
-  border: 1px solid color-mix(in oklab, var(--line-soft), #a89478 14%);
+  border: 1px solid var(--nested-surface-border);
   border-radius: calc(var(--radius-unified) + 2px);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(247, 242, 234, 0.66));
+  background: linear-gradient(180deg, var(--nested-surface-top), var(--nested-surface-bottom));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
@@ -325,8 +325,8 @@ onMounted(reload)
   width: 24px;
   height: 24px;
   border-radius: 999px;
-  border: 1px solid rgba(121, 102, 82, 0.22);
-  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--nested-surface-border);
+  background: linear-gradient(180deg, var(--nested-surface-top), rgba(245, 248, 251, 0.92));
   display: grid;
   place-items: center;
   color: var(--text-muted);
@@ -341,7 +341,7 @@ onMounted(reload)
   top: 42px;
   bottom: -10px;
   width: 1px;
-  background: linear-gradient(180deg, rgba(124, 105, 84, 0.18), transparent);
+  background: linear-gradient(180deg, var(--nested-surface-rule), transparent);
 }
 
 .log-line:last-child::after {

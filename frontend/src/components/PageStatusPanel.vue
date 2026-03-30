@@ -53,8 +53,13 @@ const iconComponent = computed(() => {
   gap: 14px;
   padding: 16px 18px;
   border-radius: calc(var(--radius-unified) + 2px);
-  border: 1px solid var(--line-soft);
-  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(38, 38, 38, 0.1);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(243, 246, 249, 0.82)),
+    var(--bg-card);
+  box-shadow:
+    0 14px 26px rgba(20, 24, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
 .status-panel__icon {
@@ -63,9 +68,10 @@ const iconComponent = computed(() => {
   border-radius: var(--radius-unified);
   display: grid;
   place-items: center;
-  background: rgba(255, 255, 255, 0.76);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(242, 245, 248, 0.82));
   color: var(--text-main);
   font-size: 20px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.74);
 }
 
 .status-panel__body {
@@ -73,46 +79,55 @@ const iconComponent = computed(() => {
 }
 
 .status-panel__title {
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.35;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
   color: var(--text-main);
 }
 
 .status-panel__desc {
   margin-top: 4px;
-  font-size: 13px;
-  line-height: 1.66;
+  max-width: 62ch;
+  font-size: 14px;
+  line-height: 1.68;
   color: var(--text-muted);
 }
 
 .status-panel--info {
-  border-color: rgba(31, 31, 31, 0.14);
+  border-color: rgba(64, 72, 80, 0.16);
 }
 
 .status-panel--warning {
-  border-color: rgba(111, 86, 43, 0.24);
-  background: rgba(255, 250, 242, 0.72);
+  border-color: rgba(112, 98, 78, 0.18);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(245, 243, 238, 0.82)),
+    var(--bg-card);
 }
 
 .status-panel--warning .status-panel__icon {
-  color: #6a4f22;
-  background: rgba(255, 246, 227, 0.88);
+  color: #665847;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(243, 239, 232, 0.86));
 }
 
 .status-panel--danger {
-  border-color: rgba(110, 57, 57, 0.22);
-  background: rgba(255, 246, 245, 0.78);
+  border-color: rgba(113, 88, 90, 0.18);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(245, 240, 241, 0.84)),
+    var(--bg-card);
 }
 
 .status-panel--danger .status-panel__icon {
-  color: #7c3a3a;
-  background: rgba(255, 237, 235, 0.92);
+  color: #6a5052;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(243, 234, 235, 0.88));
 }
 
 .status-panel--loading {
-  border-color: rgba(31, 31, 31, 0.14);
-  background: rgba(250, 248, 243, 0.82);
+  border-color: rgba(64, 72, 80, 0.16);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(243, 246, 249, 0.84)),
+    var(--bg-card);
 }
 
 .status-panel--loading .status-panel__icon {

@@ -163,8 +163,8 @@ onMounted(reload)
   min-width: 72px;
   padding: 8px 12px;
   border-radius: calc(var(--radius-unified) + 2px);
-  border: 1px solid rgba(121, 102, 82, 0.22);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(247, 242, 234, 0.72));
+  border: 1px solid var(--nested-surface-border);
+  background: linear-gradient(180deg, var(--nested-surface-top), var(--nested-surface-bottom));
   color: var(--text-main);
   font-size: 12px;
   font-weight: 700;
@@ -184,13 +184,13 @@ onMounted(reload)
   grid-template-columns: 36px minmax(0, 1fr);
   gap: 15px;
   align-items: flex-start;
-  border: 1px solid color-mix(in oklab, var(--line-soft), #a89478 14%);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(248, 244, 237, 0.66));
+  border: 1px solid var(--nested-surface-border);
+  background: linear-gradient(180deg, var(--nested-surface-top), var(--nested-surface-bottom));
   border-radius: calc(var(--radius-unified) + 2px);
   padding: 15px 16px 15px 14px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.74),
-    0 8px 18px rgba(25, 21, 17, 0.05);
+    0 8px 18px rgba(20, 24, 28, 0.06);
 }
 
 .notice-item::after {
@@ -200,20 +200,20 @@ onMounted(reload)
   right: 18px;
   top: 0;
   height: 1px;
-  background: linear-gradient(90deg, rgba(122, 104, 82, 0.22), transparent);
+  background: linear-gradient(90deg, var(--nested-surface-rule), transparent);
 }
 
 .notice-item.is-latest {
-  border-color: rgba(131, 112, 89, 0.26);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(247, 242, 234, 0.74));
+  border-color: rgba(55, 63, 72, 0.14);
+  background: linear-gradient(180deg, rgba(252, 254, 255, 0.96), var(--nested-surface-bottom-strong));
 }
 
 .notice-index {
   width: 36px;
   height: 36px;
   border-radius: calc(var(--radius-unified) + 2px);
-  border: 1px solid rgba(121, 102, 82, 0.22);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(247, 242, 234, 0.76));
+  border: 1px solid var(--nested-surface-border);
+  background: linear-gradient(180deg, var(--nested-surface-top), var(--nested-surface-bottom));
   display: grid;
   place-items: center;
   color: var(--text-muted);

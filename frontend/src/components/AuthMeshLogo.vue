@@ -12,11 +12,11 @@ function renderMesh() {
   if (!root) return
   root.render(
     createElement(MeshGradient, {
-      speed: 1,
+      speed: 0.86,
       scale: 1,
-      distortion: 0.8,
-      swirl: 0.5,
-      colors: ['#5C5752', '#9D9892', '#C9C5C0', '#E4E1DD'],
+      distortion: 0.7,
+      swirl: 0.44,
+      colors: ['#222222', '#5C5C5C', '#A8A8A8', '#EFEFEF'],
       style: {
         borderRadius: '9999px',
         width: '100%',
@@ -61,9 +61,9 @@ onBeforeUnmount(() => {
   border-radius: 9999px;
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(92, 87, 82, 0.28);
+  border: 1px solid rgba(88, 88, 88, 0.22);
   box-shadow:
-    0 16px 34px rgba(47, 40, 34, 0.16),
+    0 16px 34px rgba(20, 24, 28, 0.16),
     inset 0 1px 0 rgba(255, 255, 255, 0.62);
 }
 

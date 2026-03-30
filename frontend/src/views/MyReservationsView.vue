@@ -7,6 +7,7 @@ import { apiCancelReservation, apiDeleteReservation, apiMyAuditLogs, apiMyRecent
 import PageStatusPanel from '../components/PageStatusPanel.vue'
 
 type ReservationLike = Partial<Reservation> & { reservationId?: number }
+type ReservationEnvelope = { list?: ReservationLike[]; records?: ReservationLike[] }
 type ViewState = 'loading' | 'ready' | 'error'
 
 const loading = ref(false)
@@ -37,6 +38,20 @@ function normalizeReservation(item: ReservationLike): Reservation {
     approvedBy: item.approvedBy ? Number(item.approvedBy) : undefined,
     approvedAt: item.approvedAt ? String(item.approvedAt) : undefined,
   }
+}
+
+function extractReservations(data: unknown): ReservationLike[] {
+  if (Array.isArray(data)) {
+    return data as ReservationLike[]
+  }
+
+  if (data && typeof data === 'object') {
+    const envelope = data as ReservationEnvelope
+    if (Array.isArray(envelope.list)) return envelope.list
+    if (Array.isArray(envelope.records)) return envelope.records
+  }
+
+  return []
 }
 
 const stats = computed(() => ({
@@ -99,13 +114,7 @@ async function reload() {
       return
     }
 
-    const raw = Array.isArray(recentResp.data)
-      ? recentResp.data
-      : Array.isArray((recentResp.data as any)?.list)
-        ? (recentResp.data as any).list
-        : Array.isArray((recentResp.data as any)?.records)
-          ? (recentResp.data as any).records
-          : []
+    const raw = extractReservations(recentResp.data)
 
     list.value = raw.map((x: ReservationLike) => normalizeReservation(x)).filter((x: Reservation) => x.id > 0)
     auditLogs.value = auditResp.code === 0 && Array.isArray(auditResp.data) ? auditResp.data : []
@@ -256,7 +265,7 @@ onMounted(reload)
         <div class="list-toolbar">
           <div class="section-head section-head--compact">
             <div class="section-title">预约列表</div>
-            <div class="section-desc">按时间倒序展示最近记录，当前显示 {{ filteredList.length }} / {{ list.length }} 条。</div>
+            <div class="section-desc">按时间倒序展示最近记录。</div>
           </div>
           <div class="reservation-filters">
             <el-input v-model="filters.keyword" clearable placeholder="搜索会议室或备注" class="reservation-filter-keyword" />
@@ -403,9 +412,9 @@ onMounted(reload)
   color: var(--text-muted);
   line-height: 1.72;
   padding: 12px 14px 12px 48px;
-  border: 1px solid color-mix(in oklab, var(--line-soft), #a89478 14%);
+  border: 1px solid var(--nested-surface-border);
   border-radius: calc(var(--radius-unified) + 2px);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(247, 242, 234, 0.66));
+  background: linear-gradient(180deg, var(--nested-surface-top), var(--nested-surface-bottom));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
@@ -418,8 +427,8 @@ onMounted(reload)
   width: 24px;
   height: 24px;
   border-radius: 999px;
-  border: 1px solid rgba(121, 102, 82, 0.22);
-  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--nested-surface-border);
+  background: linear-gradient(180deg, var(--nested-surface-top), rgba(245, 248, 251, 0.92));
   display: grid;
   place-items: center;
   color: var(--text-muted);
@@ -434,7 +443,7 @@ onMounted(reload)
   top: 42px;
   bottom: -10px;
   width: 1px;
-  background: linear-gradient(180deg, rgba(124, 105, 84, 0.18), transparent);
+  background: linear-gradient(180deg, var(--nested-surface-rule), transparent);
 }
 
 .log-line:last-child::after {
@@ -442,9 +451,9 @@ onMounted(reload)
 }
 
 .tag-pending {
-  color: #5a492f !important;
-  border-color: rgba(138, 108, 62, 0.5) !important;
-  background: rgba(168, 131, 74, 0.22) !important;
+  color: #525861 !important;
+  border-color: rgba(78, 86, 96, 0.3) !important;
+  background: rgba(93, 102, 112, 0.12) !important;
 }
 
 @media (max-width: 980px) {

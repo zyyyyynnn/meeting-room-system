@@ -48,7 +48,7 @@ function logout() {
 </script>
 
 <template>
-  <div class="workspace-shell">
+  <div class="workspace-shell cursor-layout">
     <header class="workspace-top">
       <div class="top-brand">
         <div class="brand-mark">
@@ -144,8 +144,14 @@ function logout() {
     </el-drawer>
 
     <div class="workspace-body">
-      <main class="workspace-main">
-        <router-view />
+      <main class="workspace-main cursor-main-panel">
+        <router-view v-slot="{ Component, route: childRoute }">
+          <transition name="workspace-view" mode="out-in" appear>
+            <div :key="childRoute.fullPath" class="workspace-page">
+              <component :is="Component" />
+            </div>
+          </transition>
+        </router-view>
       </main>
     </div>
   </div>
@@ -179,7 +185,7 @@ function logout() {
   padding: 0 30px;
   border-bottom: 1px solid var(--line-soft);
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.84) 0%, rgba(251, 248, 242, 0.74) 52%, rgba(246, 241, 232, 0.66) 100%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.88) 0%, rgba(245, 248, 250, 0.8) 52%, rgba(238, 242, 245, 0.72) 100%),
     var(--bg-card);
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -189,7 +195,9 @@ function logout() {
   position: sticky;
   top: 0;
   z-index: 20;
-  box-shadow: 0 6px 14px rgba(35, 30, 26, 0.05);
+  box-shadow:
+    0 6px 14px rgba(20, 24, 28, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
 .workspace-top::after {
@@ -199,7 +207,7 @@ function logout() {
   right: 18px;
   bottom: -1px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(70, 58, 44, 0.24), transparent);
+  background: linear-gradient(90deg, transparent, rgba(78, 86, 96, 0.22), transparent);
 }
 
 .top-brand {
@@ -220,7 +228,7 @@ function logout() {
   overflow: hidden;
   background:
     radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.56), transparent 48%),
-    linear-gradient(150deg, rgba(95, 80, 63, 0.12), rgba(255, 255, 255, 0.42));
+    linear-gradient(150deg, rgba(94, 108, 122, 0.12), rgba(255, 255, 255, 0.42));
 }
 
 .brand-mark :deep(.auth-mesh-logo) {
@@ -230,14 +238,18 @@ function logout() {
 }
 
 .brand-title {
-  font-size: 16px;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   color: var(--text-main);
   white-space: nowrap;
 }
 
 .brand-sub {
-  font-size: 12px;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
   color: var(--text-weak);
   white-space: nowrap;
 }
@@ -253,7 +265,7 @@ function logout() {
   overflow-y: hidden;
   padding: 6px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(73, 63, 48, 0.28) transparent;
+  scrollbar-color: rgba(78, 86, 96, 0.28) transparent;
 }
 
 .top-nav::-webkit-scrollbar {
@@ -265,11 +277,15 @@ function logout() {
 }
 
 .top-nav::-webkit-scrollbar-thumb {
-  background: rgba(73, 63, 48, 0.28);
+  background: rgba(78, 86, 96, 0.28);
   border-radius: 999px;
 }
 
 .nav-chip {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   height: 40px;
   min-width: 126px;
   border-radius: var(--radius-unified);
@@ -285,10 +301,11 @@ function logout() {
   position: relative;
   overflow: hidden;
   transition:
-    box-shadow 0.16s ease,
-    border-color 0.16s ease,
-    background-color 0.16s ease,
-    color 0.16s ease;
+    transform var(--motion-fast) var(--motion-ease-emphasis),
+    box-shadow var(--motion-base) var(--motion-ease-out),
+    border-color var(--motion-fast) var(--motion-ease-out),
+    background-color var(--motion-fast) var(--motion-ease-out),
+    color var(--motion-fast) var(--motion-ease-out);
   scroll-snap-align: start;
 }
 
@@ -303,23 +320,26 @@ function logout() {
   background: currentColor;
   transform: scaleX(0);
   transform-origin: center;
-  transition: transform 0.22s ease;
+  transition: transform var(--motion-base) var(--motion-ease-emphasis);
   opacity: 0.82;
 }
 
 .nav-chip:hover {
+  transform: translate3d(0, -2px, 0);
   border-color: var(--line-strong);
-  box-shadow: 0 5px 12px rgba(28, 24, 19, 0.08);
+  box-shadow: 0 5px 12px rgba(20, 24, 28, 0.08);
 }
 
 .nav-chip:active {
-  box-shadow: 0 2px 6px rgba(28, 24, 19, 0.08);
+  transform: translate3d(0, 0, 0) scale(0.99);
+  box-shadow: 0 2px 6px rgba(20, 24, 28, 0.08);
 }
 
 .nav-chip.active {
   background: var(--accent);
   color: var(--bg-card-strong);
   border-color: var(--accent);
+  box-shadow: 0 8px 18px rgba(20, 24, 28, 0.16);
 }
 
 .nav-chip.active::after {
@@ -336,6 +356,7 @@ function logout() {
 }
 
 .header-user {
+  font-family: var(--font-display);
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -348,16 +369,23 @@ function logout() {
 }
 
 .user-name {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .user-role {
-  font-size: 11px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   color: var(--text-weak);
 }
 
 .logout-btn {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -368,53 +396,61 @@ function logout() {
   background: var(--bg-card);
   box-sizing: border-box;
   transition:
-    box-shadow 0.16s ease,
-    border-color 0.16s ease,
-    background-color 0.16s ease,
-    color 0.16s ease;
+    transform var(--motion-fast) var(--motion-ease-emphasis),
+    box-shadow var(--motion-base) var(--motion-ease-out),
+    border-color var(--motion-fast) var(--motion-ease-out),
+    background-color var(--motion-fast) var(--motion-ease-out),
+    color var(--motion-fast) var(--motion-ease-out);
 }
 
 .logout-btn:hover {
+  transform: translate3d(0, -2px, 0);
   border-color: var(--line-strong);
-  box-shadow: 0 5px 12px rgba(28, 24, 19, 0.08);
+  box-shadow: 0 5px 12px rgba(20, 24, 28, 0.08);
 }
 
 .logout-btn:active {
-  box-shadow: 0 2px 6px rgba(28, 24, 19, 0.08);
+  transform: translate3d(0, 0, 0) scale(0.99);
+  box-shadow: 0 2px 6px rgba(20, 24, 28, 0.08);
 }
 
 .nav-chip:focus-visible,
 .logout-btn:focus-visible,
 .notice-float-btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(31, 31, 31, 0.18);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .notice-float-btn {
+  --notice-float-offset: -50%;
   position: fixed;
   right: 16px;
   top: 50%;
-  transform: translateY(-50%);
+  transform: translate3d(0, var(--notice-float-offset), 0);
   z-index: 30;
   width: 54px;
   height: 54px;
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-unified);
   background: var(--bg-card);
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  box-shadow:
+    0 10px 24px rgba(15, 23, 42, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
   color: var(--text-muted);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition:
-    box-shadow 0.16s ease,
-    border-color 0.16s ease,
-    background-color 0.16s ease,
-    color 0.16s ease;
+    transform var(--motion-fast) var(--motion-ease-emphasis),
+    box-shadow var(--motion-base) var(--motion-ease-out),
+    border-color var(--motion-fast) var(--motion-ease-out),
+    background-color var(--motion-fast) var(--motion-ease-out),
+    color var(--motion-fast) var(--motion-ease-out);
 }
 
 .notice-float-btn:hover {
+  transform: translate3d(-2px, calc(var(--notice-float-offset) - 2px), 0);
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
   border-color: var(--accent);
   background: var(--accent);
@@ -422,6 +458,7 @@ function logout() {
 }
 
 .notice-float-btn:active {
+  transform: translate3d(0, var(--notice-float-offset), 0) scale(0.985);
   box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
 }
 
@@ -460,33 +497,35 @@ function logout() {
   justify-content: space-between;
   gap: 12px;
   padding: 14px 16px;
-  border: 1px solid color-mix(in oklab, var(--line-soft), #a89478 14%);
+  border: 1px solid var(--nested-surface-border);
   border-radius: calc(var(--radius-unified) + 2px);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(248, 244, 237, 0.68)),
+    linear-gradient(180deg, var(--nested-surface-top), var(--nested-surface-bottom)),
     var(--bg-card);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
 .notice-panel-title {
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.35;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
   color: var(--text-main);
 }
 
 .notice-panel-subtitle {
   margin-top: 4px;
-  font-size: 13px;
-  line-height: 1.64;
+  font-size: 14px;
+  line-height: 1.68;
   color: var(--text-weak);
 }
 
 .notice-panel-count {
   padding: 6px 10px;
   border-radius: calc(var(--radius-unified) + 2px);
-  border: 1px solid color-mix(in oklab, var(--line-soft), #a89478 16%);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(247, 242, 234, 0.72));
+  border: 1px solid var(--nested-surface-border);
+  background: linear-gradient(180deg, var(--nested-surface-top), var(--nested-surface-bottom));
   color: var(--accent);
   font-size: 12px;
   font-weight: 700;
@@ -506,11 +545,11 @@ function logout() {
   grid-template-columns: 34px 1fr;
   gap: 14px;
   align-items: flex-start;
-  border: 1px solid color-mix(in oklab, var(--line-soft), #a89478 14%);
+  border: 1px solid var(--nested-surface-border);
   border-radius: calc(var(--radius-unified) + 2px);
   padding: 14px 15px 14px 14px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(248, 244, 237, 0.66)),
+    linear-gradient(180deg, var(--nested-surface-top), var(--nested-surface-bottom)),
     var(--bg-card);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
@@ -522,7 +561,7 @@ function logout() {
   right: 18px;
   top: 0;
   height: 1px;
-  background: linear-gradient(90deg, rgba(122, 104, 82, 0.22), transparent);
+  background: linear-gradient(90deg, var(--nested-surface-rule), transparent);
 }
 
 .notice-item__index {
@@ -531,8 +570,8 @@ function logout() {
   border-radius: calc(var(--radius-unified) + 2px);
   display: grid;
   place-items: center;
-  border: 1px solid rgba(121, 102, 82, 0.22);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(247, 242, 234, 0.72));
+  border: 1px solid var(--nested-surface-border);
+  background: linear-gradient(180deg, var(--nested-surface-top), var(--nested-surface-bottom));
   color: var(--accent);
   font-size: 12px;
   font-weight: 700;
@@ -559,10 +598,40 @@ function logout() {
   flex: 1;
   min-height: 0;
   min-width: 0;
+  position: relative;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 24px 24px 0;
+  scroll-behavior: smooth;
+}
+
+.workspace-page {
+  min-height: 100%;
+}
+
+.workspace-view-enter-active {
+  transition:
+    opacity 380ms var(--motion-ease-emphasis),
+    transform 380ms var(--motion-ease-emphasis);
+}
+
+.workspace-view-leave-active {
+  transition:
+    opacity 220ms var(--motion-ease-out),
+    transform 220ms var(--motion-ease-out);
+}
+
+.workspace-view-enter-from,
+.workspace-view-leave-to {
+  opacity: 0;
+  transform: translate3d(0, 14px, 0);
+}
+
+.workspace-view-enter-to,
+.workspace-view-leave-from {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
 }
 
 .workspace-main :deep(.page-wrap) {
