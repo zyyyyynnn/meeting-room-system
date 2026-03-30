@@ -1,25 +1,26 @@
-﻿# 会议室预约与资源协调系统
+# 会议室预约与资源协调系统
 
-一个基于前后端分离架构的会议室预约系统，支持登录注册、运营看板、会议室查询、日历视图预约、我的预约管理、通知查看，以及管理员审批和用户管理。当前前端已经收敛为统一的浅色办公主题，并围绕“安静、克制、有秩序”的内部员工工作台体验做了整体重构。
+基于前后端分离架构的会议室预约系统，提供登录注册、运营看板、会议室管理、日历预约、我的预约、通知、审批和用户管理等能力。
 
 ## 技术栈
 
 - 后端：Spring Boot 3、Spring Security、MyBatis-Plus、MySQL 8、Redis、JWT
 - 前端：Vue 3、TypeScript、Vite、Element Plus、FullCalendar
-- 动态视觉：`@paper-design/shaders-react`、React 19、React DOM 19（仅用于动态 logo 渲染）
-- 开发辅助：Windows 一键启动脚本、前端运行时容错、统一状态反馈组件
+- 前端附加依赖：`@paper-design/shaders-react`、React 19、React DOM 19（用于动态 logo）
+- 开发辅助：Windows 一键启动脚本、前端运行时恢复脚本、统一状态反馈组件
 
-## 核心能力
+## 功能概览
 
 - 用户登录、注册与基于角色的权限控制
-- 所有角色统一登录落点：`/dashboard` 运营看板
+- 统一登录落点：所有角色登录后默认进入 `/dashboard`
+- 运营看板
 - 会议室列表、状态管理、维护时段管理
 - 日历视图预约、批量周预约、冲突建议与占用查看
 - 我的预约、取消预约、删除预约、审计日志
-- 管理员预约审批、撤销审批、运营看板、用户管理
-- 统一的页面状态反馈：加载中、空态、错误态、后端未就绪提示
-- 统一的浅色主题视觉系统：冷白石墨卡片、统一表格/筛选工具栏、登录态与工作台一致的设计语言
-- 顶层路由切换、工作台内部页切换和页面分段入场动效，兼容 `prefers-reduced-motion`
+- 管理员预约审批、撤销审批
+- 用户管理与权限调整
+- 通知查看
+- 统一的加载、空态、错误和服务未就绪提示
 
 ## 角色说明
 
@@ -29,21 +30,9 @@
 | `ADMIN` | 管理员，可处理预约审批、查看看板，并进入管理页面 | `/dashboard` |
 | `SUPER_ADMIN` | 超级管理员，可管理用户与权限，同时具备管理员能力 | `/dashboard` |
 
-## 当前界面基线
-
-当前前端默认遵循以下界面规则：
-
-- 固定浅色主题，不跟随系统切换暗色模式
-- 登录页、工作台壳层、列表页、日历页、通知与状态面板使用同一套视觉 token
-- 运营看板是所有角色登录后的统一入口，管理动作通过顶部导航进入
-- 列表类页面优先采用“标题说明 + 工具栏筛选 + 表格”的统一卡片排布
-- 对标题、导航、按钮、筛选值和表头做了单行保护，尽量避免文字换行破坏排版
-
-更细的前端设计上下文见 [.impeccable.md](/E:/私有云/Personal%20project/.impeccable.md)。
-
 ## 环境要求
 
-启动项目前，请先确认本机已安装并可用：
+启动项目前请确认本机已安装并可用：
 
 - Java 21
 - Maven 3.8+
@@ -51,7 +40,7 @@
 - MySQL 8
 - Redis
 
-默认配置见 [application.yml](/E:/私有云/Personal%20project/backend/src/main/resources/application.yml)。
+默认后端配置见 [application.yml](/E:/私有云/Personal%20project/backend/src/main/resources/application.yml)。
 
 ## 快速开始
 
@@ -63,13 +52,13 @@
 start-dev.bat
 ```
 
-脚本会自动完成这些工作：
+脚本会自动：
 
 1. 检查 `backend/` 与 `frontend/` 是否存在
 2. 检查 `mvn`、`npm`、`redis-server` 是否可用
-3. 当前端依赖缺失时自动执行 `npm install`
+3. 当前端依赖缺失时执行 `npm install`
 4. 启动 Redis、Spring Boot 后端、Vite 前端
-5. 等待后端 `8080` 可达后再启动前端，减少刚打开页面就遇到 `502` 的情况
+5. 等待后端 `8080` 可达后再启动前端
 
 ### 2. 手动启动
 
@@ -102,10 +91,10 @@ npm run dev
 - 超级管理员：`root / Root@123456`
 - 普通用户：通过注册页自行创建
 
-## 前端开发稳定性说明
+## 前端开发说明
 
-当前工作目录位于包含中文字符的路径下：`E:/私有云/Personal project`。
-在 Windows 下，Vite 8 的 Rolldown 对这类路径执行强制依赖优化时可能出现异常，因此建议遵循以下规则：
+当前仓库路径包含中文字符：`E:/私有云/Personal project`。
+在 Windows 下，Vite 8 的 Rolldown 在这类路径上进行依赖优化时可能出现异常，建议按下面方式处理：
 
 - 常规开发使用 `npm run dev`
 - 出现空白页、路由模块加载失败时使用 `npm run dev:recover`
@@ -118,7 +107,7 @@ cd frontend
 npm run dev:recover
 ```
 
-适用症状：
+常见症状：
 
 - 登录后白屏
 - 切换页面后内容消失
@@ -129,36 +118,41 @@ npm run dev:recover
 
 ### 根目录
 
-- [README.md](/E:/私有云/Personal%20project/README.md)：项目总说明、启动方式和结构说明
-- [.gitignore](/E:/私有云/Personal%20project/.gitignore)：项目级忽略规则，屏蔽构建产物、运行日志和缓存目录
+- [README.md](/E:/私有云/Personal%20project/README.md)：项目说明
+- [.gitignore](/E:/私有云/Personal%20project/.gitignore)：忽略规则
+- [.impeccable.md](/E:/私有云/Personal%20project/.impeccable.md)：前端设计基线
 - [start-dev.bat](/E:/私有云/Personal%20project/start-dev.bat)：Windows 一键启动脚本
 - `frontend/`：Vue 前端工程
 - `backend/`：Spring Boot 后端工程
-- `.github/`：仓库协作与 GitHub 配置
-- `.vscode/`：VS Code 工作区设置
-- `.idea/`：JetBrains IDE 工程配置
-- `.cursor/`：本地编辑器辅助目录
+- `.github/`：GitHub 配置
 
 ### 前端目录
 
 前端主工程位于 `frontend/`。
 
-- [package.json](/E:/私有云/Personal%20project/frontend/package.json)：前端依赖与脚本入口
-- [vite.config.ts](/E:/私有云/Personal%20project/frontend/vite.config.ts)：Vite 配置、Element Plus 自动导入、开发代理和依赖优化策略
+- [package.json](/E:/私有云/Personal%20project/frontend/package.json)：前端依赖与脚本
+- [vite.config.ts](/E:/私有云/Personal%20project/frontend/vite.config.ts)：Vite 配置
 - [README.md](/E:/私有云/Personal%20project/frontend/README.md)：前端补充说明
 
-`frontend/src/` 是前端源码主目录：
+`frontend/src/` 主要目录：
 
-- [main.ts](/E:/私有云/Personal%20project/frontend/src/main.ts)：前端入口文件
-- [App.vue](/E:/私有云/Personal%20project/frontend/src/App.vue)：最外层应用壳，承载路由视图
-- [style.css](/E:/私有云/Personal%20project/frontend/src/style.css)：全局视觉样式，包括固定浅色主题、颗粒背景、卡片、表格、弹窗、按钮、转场和抗换行细节规则
+- [main.ts](/E:/私有云/Personal%20project/frontend/src/main.ts)：前端入口
+- [App.vue](/E:/私有云/Personal%20project/frontend/src/App.vue)：应用壳与顶层路由视图
+- [style.css](/E:/私有云/Personal%20project/frontend/src/style.css)：全局样式与组件视觉规则
+- `views/`：页面目录
+- `components/`：复用组件目录
+- `api/`：接口封装与类型
+- `store/`：状态管理
+- `router/`：路由与守卫
+- `utils/`：工具函数
+- `assets/`：静态资源
 
-`frontend/src/views/` 页面目录：
+页面目录 `frontend/src/views/`：
 
 - [LoginView.vue](/E:/私有云/Personal%20project/frontend/src/views/LoginView.vue)：登录页
 - [RegisterView.vue](/E:/私有云/Personal%20project/frontend/src/views/RegisterView.vue)：注册页
-- [LayoutView.vue](/E:/私有云/Personal%20project/frontend/src/views/LayoutView.vue)：登录后的整体工作台外壳、顶部导航、通知抽屉与内页转场容器
-- [DashboardView.vue](/E:/私有云/Personal%20project/frontend/src/views/DashboardView.vue)：运营看板首页
+- [LayoutView.vue](/E:/私有云/Personal%20project/frontend/src/views/LayoutView.vue)：登录后工作台外壳、顶部导航、通知抽屉
+- [DashboardView.vue](/E:/私有云/Personal%20project/frontend/src/views/DashboardView.vue)：运营看板
 - [CalendarView.vue](/E:/私有云/Personal%20project/frontend/src/views/CalendarView.vue)：会议预约日历页
 - [RoomsView.vue](/E:/私有云/Personal%20project/frontend/src/views/RoomsView.vue)：会议室管理页
 - [MyReservationsView.vue](/E:/私有云/Personal%20project/frontend/src/views/MyReservationsView.vue)：我的预约页
@@ -166,69 +160,55 @@ npm run dev:recover
 - [AdminApprovalsView.vue](/E:/私有云/Personal%20project/frontend/src/views/AdminApprovalsView.vue)：预约审批页
 - [UserManagementView.vue](/E:/私有云/Personal%20project/frontend/src/views/UserManagementView.vue)：用户管理页
 
-`frontend/src/components/` 复用组件目录：
+组件目录 `frontend/src/components/`：
 
-- [AuthMeshLogo.vue](/E:/私有云/Personal%20project/frontend/src/components/AuthMeshLogo.vue)：动态 logo 组件，内部使用 React shader 渲染效果，并已调整为与当前灰阶主题一致的配色
-- [PageStatusPanel.vue](/E:/私有云/Personal%20project/frontend/src/components/PageStatusPanel.vue)：统一的加载中、错误、空态、服务未就绪提示组件
+- [AuthMeshLogo.vue](/E:/私有云/Personal%20project/frontend/src/components/AuthMeshLogo.vue)：动态 logo 组件
+- [PageStatusPanel.vue](/E:/私有云/Personal%20project/frontend/src/components/PageStatusPanel.vue)：统一状态反馈组件
 
-`frontend/src/api/` 接口层：
+工具目录：
 
-- [http.ts](/E:/私有云/Personal%20project/frontend/src/api/http.ts)：Axios 实例、请求拦截器、401 处理、基础设施错误翻译
-- [mrs.ts](/E:/私有云/Personal%20project/frontend/src/api/mrs.ts)：业务 API 封装
-- [types.ts](/E:/私有云/Personal%20project/frontend/src/api/types.ts)：前端接口类型定义
-
-`frontend/src/store/` 状态层：
-
-- [auth.ts](/E:/私有云/Personal%20project/frontend/src/store/auth.ts)：登录态、角色、token 持久化
-- [serviceStatus.ts](/E:/私有云/Personal%20project/frontend/src/store/serviceStatus.ts)：后端服务状态，用于页面内统一反馈
-
-`frontend/src/router/` 路由层：
-
-- [index.ts](/E:/私有云/Personal%20project/frontend/src/router/index.ts)：路由表、登录守卫、角色跳转和懒加载恢复逻辑
-
-`frontend/src/utils/` 工具层：
-
-- [authRoute.ts](/E:/私有云/Personal%20project/frontend/src/utils/authRoute.ts)：统一默认首页解析（当前所有角色都会进入 `/dashboard`）
-- [chunkRecovery.ts](/E:/私有云/Personal%20project/frontend/src/utils/chunkRecovery.ts)：处理路由懒加载失败后的恢复逻辑
-
-`frontend/src/assets/` 静态素材目录：
-
-- [linen-noise.svg](/E:/私有云/Personal%20project/frontend/src/assets/linen-noise.svg)：当前登录页与登录后页面共用的亚麻颗粒背景素材
+- [frontend/src/api/http.ts](/E:/私有云/Personal%20project/frontend/src/api/http.ts)：Axios 实例与错误处理
+- [frontend/src/api/mrs.ts](/E:/私有云/Personal%20project/frontend/src/api/mrs.ts)：业务 API
+- [frontend/src/api/types.ts](/E:/私有云/Personal%20project/frontend/src/api/types.ts)：接口类型
+- [frontend/src/store/auth.ts](/E:/私有云/Personal%20project/frontend/src/store/auth.ts)：登录态与角色持久化
+- [frontend/src/store/serviceStatus.ts](/E:/私有云/Personal%20project/frontend/src/store/serviceStatus.ts)：后端服务状态
+- [frontend/src/router/index.ts](/E:/私有云/Personal%20project/frontend/src/router/index.ts)：路由表与守卫
+- [frontend/src/utils/authRoute.ts](/E:/私有云/Personal%20project/frontend/src/utils/authRoute.ts)：默认首页解析
+- [frontend/src/utils/chunkRecovery.ts](/E:/私有云/Personal%20project/frontend/src/utils/chunkRecovery.ts)：懒加载恢复逻辑
 
 ### 后端目录
 
 后端主工程位于 `backend/`。
 
-- [pom.xml](/E:/私有云/Personal%20project/backend/pom.xml)：Maven 配置与依赖声明
-- [application.yml](/E:/私有云/Personal%20project/backend/src/main/resources/application.yml)：数据库、Redis、JWT、默认管理员、预约规则等运行配置
-- [MeetingRoomSystemApplication.java](/E:/私有云/Personal%20project/backend/src/main/java/com/example/mrs/MeetingRoomSystemApplication.java)：Spring Boot 启动入口
+- [pom.xml](/E:/私有云/Personal%20project/backend/pom.xml)：Maven 配置
+- [application.yml](/E:/私有云/Personal%20project/backend/src/main/resources/application.yml)：运行配置
+- [MeetingRoomSystemApplication.java](/E:/私有云/Personal%20project/backend/src/main/java/com/example/mrs/MeetingRoomSystemApplication.java)：启动入口
 
-`backend/src/main/java/com/example/mrs/` 为后端核心源码：
+`backend/src/main/java/com/example/mrs/` 主要模块：
 
-- `auth/`：登录注册控制器、服务与 DTO
-- `security/`：JWT、认证过滤器、Spring Security 配置
-- `room/`：会议室管理相关业务
-- `reservation/`：预约、审批、审计日志、通知等核心业务
-- `stats/`：运营看板统计逻辑
-- `user/`：用户管理与权限调整
-- `entity/`：数据库实体类
-- `mapper/`：MyBatis-Plus 数据访问层
-- `common/`：统一返回体、业务异常、全局异常处理
-- `config/`：MyBatis、OpenAPI、预约规则等配置类
-- `bootstrap/`：启动时初始化管理员账号
-- `domain/`：角色、预约状态等领域枚举
-- `redis/`：Redis key 与分布式锁相关封装
+- `auth/`：登录注册
+- `security/`：认证与权限
+- `room/`：会议室管理
+- `reservation/`：预约、审批、审计日志、通知
+- `stats/`：运营看板统计
+- `user/`：用户管理
+- `entity/`：实体类
+- `mapper/`：数据访问层
+- `common/`：统一返回与异常处理
+- `config/`：配置类
+- `bootstrap/`：初始化管理员账号
+- `domain/`：角色与状态枚举
+- `redis/`：Redis 相关封装
 
 ## 常见修改入口
-
-如果你后续要自己维护项目，通常可以从这些入口开始：
 
 1. 登录、权限、默认跳转：
    - [frontend/src/store/auth.ts](/E:/私有云/Personal%20project/frontend/src/store/auth.ts)
    - [frontend/src/router/index.ts](/E:/私有云/Personal%20project/frontend/src/router/index.ts)
+   - [frontend/src/utils/authRoute.ts](/E:/私有云/Personal%20project/frontend/src/utils/authRoute.ts)
    - `backend/src/main/java/com/example/mrs/auth/`
    - `backend/src/main/java/com/example/mrs/security/`
-2. 全站视觉与页面样式：
+2. 前端界面与交互：
    - [frontend/src/style.css](/E:/私有云/Personal%20project/frontend/src/style.css)
    - [.impeccable.md](/E:/私有云/Personal%20project/.impeccable.md)
    - `frontend/src/views/*.vue`
@@ -251,4 +231,4 @@ npm run dev:recover
 - `.playwright-cli/`
 - `output/`
 
-这些规则已经收敛到根目录 [.gitignore](/E:/私有云/Personal%20project/.gitignore) 中统一管理。
+统一忽略规则见 [.gitignore](/E:/私有云/Personal%20project/.gitignore)。
