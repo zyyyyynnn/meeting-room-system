@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { RefreshRight } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useRoute } from 'vue-router'
 import { getRequestErrorMessage } from '../api/http'
 import type { Room } from '../api/types'
 import { apiAddRoomMaintenance, apiCreateRoom, apiDeleteRoom, apiRooms, apiUpdateRoom, apiUpdateRoomStatus } from '../api/mrs'
@@ -16,6 +18,7 @@ const statusMessage = ref('')
 const hasLoadedOnce = ref(false)
 const dialogOpen = ref(false)
 const editing = ref<Room | null>(null)
+const route = useRoute()
 
 const EQUIPMENT_LABELS = {
   projector: '投影仪',
@@ -28,6 +31,7 @@ const EQUIPMENT_LABELS = {
 
 const baseEquipmentOptions = Object.values(EQUIPMENT_LABELS)
 const equipmentOptions = ref<string[]>([...baseEquipmentOptions])
+const equipmentSortOrder: Map<string, number> = new Map(baseEquipmentOptions.map((item, index) => [item, index]))
 
 const form = reactive({
   name: '',
@@ -54,19 +58,23 @@ function resetMaintenanceForm(room?: Room | null) {
 const filters = reactive({
   keyword: '',
   capacity: 'ALL' as 'ALL' | 'SMALL' | 'MEDIUM' | 'LARGE',
+  status: 'ALL' as 'ALL' | 'AVAILABLE' | 'MAINTENANCE' | 'DISABLED',
   equipment: 'ALL' as string,
 })
 
+function applyRouteFilters() {
+  const status = String(route.query.status ?? '').toUpperCase()
+  filters.status = ['ALL', 'AVAILABLE', 'MAINTENANCE', 'DISABLED'].includes(status)
+    ? (status as typeof filters.status)
+    : 'ALL'
+  filters.keyword = typeof route.query.keyword === 'string' ? route.query.keyword : ''
+}
+
 const isAdmin = computed(() => authStore.isAdmin.value)
-const showBlockingState = computed(() => !hasLoadedOnce.value && viewState.value !== 'ready')
+const showBlockingState = computed(() => !hasLoadedOnce.value && viewState.value === 'error')
 const showInlineError = computed(() => hasLoadedOnce.value && viewState.value === 'error')
-const stateTitle = computed(() => (viewState.value === 'loading' ? '正在加载会议室数据' : '会议室数据暂时不可用'))
-const stateDescription = computed(() => {
-  if (viewState.value === 'loading') {
-    return '正在同步会议室容量、设备和状态信息，请稍候。'
-  }
-  return statusMessage.value || '当前无法获取会议室列表，请稍后重试。'
-})
+const stateTitle = computed(() => '会议室数据暂时不可用')
+const stateDescription = computed(() => statusMessage.value || '当前无法获取会议室列表，请稍后重试。')
 
 const equipmentAliasMap: Record<string, string> = {
   投影设备: EQUIPMENT_LABELS.projector,
@@ -107,7 +115,7 @@ function normalizeEquipmentLabel(input: unknown) {
 }
 
 function normalizeEquipmentForForm(input: unknown) {
-  const value = normalizeText(input)
+  const value = normalizeEquipmentLabel(input)
   if (!value) return ''
   if (value.toLowerCase() === 'nodata') return ''
   return value
@@ -135,8 +143,9 @@ const viewRooms = computed(() => {
 
     const equipment = (filters.equipment ?? '').trim()
     const equipmentMatched = equipment === 'ALL' || !equipment || room.equipment.includes(equipment)
+    const statusMatched = filters.status === 'ALL' || (room.status ?? 'AVAILABLE') === filters.status
 
-    return keywordMatched && capacityMatched && equipmentMatched
+    return keywordMatched && capacityMatched && equipmentMatched && statusMatched
   })
 })
 
@@ -158,21 +167,12 @@ const emptyRoomMessage = computed(() => {
 })
 
 function dedupeAndSortEquipment(items: string[]) {
-  return Array.from(new Set(items.map((item) => normalizeEquipmentForForm(item)).filter(Boolean))).sort((a, b) =>
-    a.localeCompare(b, 'zh-Hans-CN'),
-  )
+  const normalized = Array.from(new Set(items.map((item) => normalizeEquipmentForForm(item)).filter(Boolean)))
+  return normalized.sort((a, b) => (equipmentSortOrder.get(a) ?? Number.MAX_SAFE_INTEGER) - (equipmentSortOrder.get(b) ?? Number.MAX_SAFE_INTEGER))
 }
 
 function syncEquipmentOptions() {
-  const dynamic: string[] = []
-  rooms.value.forEach((room) => {
-    const list = Array.isArray(room.equipment) ? room.equipment : []
-    list.forEach((item) => {
-      const normalized = normalizeEquipmentLabel(item)
-      if (normalized && normalized.toLowerCase() !== 'nodata') dynamic.push(normalized)
-    })
-  })
-  equipmentOptions.value = dedupeAndSortEquipment([...baseEquipmentOptions, ...dynamic])
+  equipmentOptions.value = [...baseEquipmentOptions]
 }
 
 async function reload() {
@@ -213,6 +213,7 @@ async function reload() {
 
 function resetAdvancedFilters() {
   filters.capacity = 'ALL'
+  filters.status = 'ALL'
   filters.equipment = 'ALL'
 }
 
@@ -297,27 +298,46 @@ async function del(room: Room) {
 }
 
 onMounted(reload)
+
+watch(
+  () => route.query,
+  () => {
+    applyRouteFilters()
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
   <div class="page-wrap">
     <section class="page-hero cursor-card">
-      <div>
-        <h2 class="page-title">会议室管理</h2>
+      <div class="page-hero__copy">
+        <div class="page-title-row">
+          <h2 class="page-title">会议室管理</h2>
+          <el-button v-if="isAdmin" type="primary" class="btn-key-soft" @click="openCreate">新增会议室</el-button>
+        </div>
         <p class="page-subtitle">统一维护会议室容量与设备信息，确保预约资源清晰可控。</p>
       </div>
       <div class="hero-actions">
-        <el-button type="primary" class="btn-key-soft" :loading="loading" @click="reload">刷新</el-button>
-        <el-button v-if="isAdmin" type="primary" class="btn-key-solid" @click="openCreate">新增会议室</el-button>
+        <el-button
+          type="primary"
+          class="btn-key-solid page-refresh-btn"
+          :icon="RefreshRight"
+          :loading="loading"
+          circle
+          title="刷新"
+          aria-label="刷新会议室管理"
+          @click="reload"
+        />
       </div>
     </section>
 
     <PageStatusPanel
       v-if="showBlockingState"
-      :tone="viewState === 'loading' ? 'loading' : 'danger'"
+      tone="danger"
       :title="stateTitle"
       :description="stateDescription"
-      :action-text="viewState === 'error' ? '重新加载' : ''"
+      action-text="重新加载"
       @action="reload"
     />
 
@@ -340,15 +360,21 @@ onMounted(reload)
       </section>
 
       <section class="cursor-card table-card room-table-card">
-        <div class="section-head room-head">
+        <div class="section-head room-head toolbar-row">
           <div class="section-title">会议室列表</div>
-          <div class="room-filters room-filters--inline">
+          <div class="room-filters room-filters--inline filter-bar">
             <el-input v-model="filters.keyword" clearable placeholder="搜索会议室" class="filter-inline-keyword" />
             <el-select v-model="filters.capacity" class="filter-inline-select">
               <el-option label="全部容量" value="ALL" />
               <el-option label="2-6 人" value="SMALL" />
               <el-option label="7-10 人" value="MEDIUM" />
               <el-option label="10 人以上" value="LARGE" />
+            </el-select>
+            <el-select v-model="filters.status" class="filter-inline-select">
+              <el-option label="全部状态" value="ALL" />
+              <el-option label="可用" value="AVAILABLE" />
+              <el-option label="维护中" value="MAINTENANCE" />
+              <el-option label="停用" value="DISABLED" />
             </el-select>
             <el-select
               v-model="filters.equipment"
@@ -407,11 +433,9 @@ onMounted(reload)
           v-model="form.equipment"
           multiple
           filterable
-          allow-create
-          default-first-option
           :reserve-keyword="false"
-          placeholder="请选择或输入设备"
-          no-data-text="可直接输入设备后回车创建"
+          placeholder="请选择设备"
+          no-data-text="暂无可选设备"
         >
           <el-option v-for="item in equipmentOptions" :key="item" :label="item" :value="item" />
         </el-select>
@@ -479,7 +503,7 @@ onMounted(reload)
 .dialog-footer-bar {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 8px;
 }
 
 .row-actions {
@@ -498,20 +522,20 @@ onMounted(reload)
 }
 
 .room-stats-grid .stat-card {
-  min-height: 126px;
+  min-height: var(--stat-card-min-height);
 }
 
 .room-table-card {
-  padding-top: 20px;
+  padding-top: var(--panel-card-padding);
 }
 
 .room-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 12px;
+  margin-bottom: 0;
 }
 
 .room-head .section-title {
@@ -627,7 +651,7 @@ onMounted(reload)
   }
 
   .room-filters {
-    padding: 12px;
+    padding: var(--filter-bar-padding-block) var(--filter-bar-padding-inline);
   }
 
   .filter-inline-keyword,

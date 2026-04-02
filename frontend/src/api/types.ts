@@ -76,6 +76,84 @@ export type OverviewStats = {
   }
 }
 
+export type DashboardWelcome = {
+  roleLabel: string
+  message: string
+}
+
+export type DashboardTaskItem = {
+  key: string
+  label: string
+  value: number
+  detail: string
+  tone: string
+  to: string
+  query?: Record<string, string>
+}
+
+export type DashboardTaskSummary = {
+  title: string
+  subtitle: string
+  items: DashboardTaskItem[]
+}
+
+export type DashboardMetric = {
+  key: string
+  label: string
+  value: string
+  detail: string
+  tone: string
+}
+
+export type DashboardResourceSnapshot = {
+  title: string
+  subtitle: string
+  metrics: DashboardMetric[]
+}
+
+export type DashboardHeatmapBucket = {
+  label: string
+  reservationCount: number
+  activeRoomCount: number
+  occupancyPercent: number
+  load: 'low' | 'medium' | 'high' | string
+}
+
+export type DashboardTrendPoint = {
+  day: string
+  label: string
+  reservationCount: number
+  pendingCount: number
+  riskCount: number
+}
+
+export type DashboardRiskDistributionItem = {
+  key: string
+  label: string
+  value: number
+  detail: string
+  tone: string
+}
+
+export type DashboardQuickLinkContext = {
+  label: string
+  description: string
+  to: string
+  tone: string
+  query?: Record<string, string>
+}
+
+export type DashboardStatsResponse = {
+  adminView: boolean
+  welcome: DashboardWelcome
+  taskSummary: DashboardTaskSummary
+  resourceSnapshot: DashboardResourceSnapshot
+  todayHeatmap: DashboardHeatmapBucket[]
+  weeklyTrend: DashboardTrendPoint[]
+  riskDistribution: DashboardRiskDistributionItem[]
+  quickLinkContext: DashboardQuickLinkContext[]
+}
+
 export type UserAccount = {
   id: number
   username: string

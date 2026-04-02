@@ -15,7 +15,6 @@ const routes: RouteRecordRaw[] = [
       { path: 'calendar', component: () => import('../views/CalendarView.vue') },
       { path: 'rooms', component: () => import('../views/RoomsView.vue') },
       { path: 'mine', component: () => import('../views/MyReservationsView.vue') },
-      { path: 'notifications', component: () => import('../views/NotificationsView.vue') },
       { path: 'admin/approvals', component: () => import('../views/AdminApprovalsView.vue'), meta: { role: 'ADMIN' } },
       { path: 'admin/users', component: () => import('../views/UserManagementView.vue'), meta: { role: 'ADMIN' } },
     ],

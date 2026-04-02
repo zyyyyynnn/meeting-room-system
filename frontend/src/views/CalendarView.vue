@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { RefreshRight } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import type { DateSelectArg, DatesSetArg, EventContentArg, EventInput } from '@fullcalendar/core'
+import { useRoute } from 'vue-router'
 import { getRequestErrorMessage } from '../api/http'
 import { apiCalendar, apiCreateReservation, apiReservationSuggestions, apiRooms } from '../api/mrs'
 import type { ConflictSuggestion, Reservation, Room } from '../api/types'
@@ -33,6 +35,7 @@ type CalendarEventInput = EventInput & {
   extendedProps: CalendarEventMeta
 }
 
+const route = useRoute()
 const rooms = ref<Room[]>([])
 const roomId = ref<number | null>(null)
 const loading = ref(false)
@@ -43,18 +46,25 @@ const hasLoadedOnce = ref(false)
 const activeRange = ref<{ start: Date; end: Date } | null>(null)
 const events = ref<CalendarEventInput[]>([])
 const suggestions = ref<ConflictSuggestion | null>(null)
+const calendarRef = ref<any>(null)
 
 const canUseRoom = computed(() => !!roomId.value)
 const currentRoom = computed(() => rooms.value.find((item) => item.id === roomId.value) ?? null)
-const showBlockingState = computed(() => !hasLoadedOnce.value && viewState.value !== 'ready')
+const showBlockingState = computed(() => !hasLoadedOnce.value && viewState.value === 'error')
 const showInlineError = computed(() => hasLoadedOnce.value && viewState.value === 'error')
-const stateTitle = computed(() => (viewState.value === 'loading' ? '正在加载会议预约日历' : '会议预约日历暂时不可用'))
-const stateDescription = computed(() => {
-  if (viewState.value === 'loading') {
-    return '正在同步会议室清单与时间排期，请稍候。'
+const contextHint = computed(() => {
+  const suggest = String(route.query.suggest ?? '').toLowerCase()
+  if (suggest === 'quiet') {
+    return '已从运营看板进入预约建议视角，优先查看可用会议室与低峰时段。'
   }
-  return statusMessage.value || '当前无法获取会议预约日历，请稍后重试。'
+  const focus = String(route.query.focus ?? '').toLowerCase()
+  if (focus === 'today') {
+    return '已按看板上下文切换到今日预约视角。'
+  }
+  return ''
 })
+const stateTitle = computed(() => '会议预约日历暂时不可用')
+const stateDescription = computed(() => statusMessage.value || '当前无法获取会议预约日历，请稍后重试。')
 
 const stats = computed(() => {
   const total = events.value.length
@@ -123,6 +133,23 @@ function getFallbackRange() {
   return { start, end }
 }
 
+function applyRouteContext() {
+  const suggest = String(route.query.suggest ?? '').toLowerCase()
+  if (suggest === 'quiet' && rooms.value.length) {
+    const preferredRoom = rooms.value.find((item) => (item.status ?? 'AVAILABLE') === 'AVAILABLE') ?? rooms.value[0]
+    if (preferredRoom && roomId.value !== preferredRoom.id) {
+      roomId.value = preferredRoom.id
+      onRoomChange()
+      return
+    }
+  }
+
+  const focus = String(route.query.focus ?? '').toLowerCase()
+  if (focus === 'today') {
+    calendarRef.value?.getApi?.().gotoDate(new Date())
+  }
+}
+
 function extractReservations(data: unknown): Reservation[] {
   if (Array.isArray(data)) {
     return data as Reservation[]
@@ -162,12 +189,12 @@ function toEvent(reservation: Reservation): CalendarEventInput {
   const tone = eventTone(status)
   const color =
     tone === 'approved'
-      ? '#37423e'
+      ? '#5f7f6c'
       : tone === 'pending'
-        ? '#615a53'
+        ? '#9b875d'
         : tone === 'rejected'
-          ? '#694c4d'
-          : '#55585c'
+          ? '#957173'
+          : '#5f6368'
 
   return {
     id: String(reservation.id ?? ''),
@@ -282,6 +309,9 @@ async function loadRooms() {
     activeRange.value = range
     suggestions.value = null
     await fetchCalendar(range.start, range.end, preserveContent)
+    void nextTick(() => {
+      applyRouteContext()
+    })
   } catch (error) {
     viewState.value = 'error'
     statusMessage.value = getRequestErrorMessage(error, '加载会议室失败')
@@ -396,32 +426,55 @@ function onRoomChange() {
   void loadCalendar(range.start, range.end)
 }
 
+watch(
+  () => `${String(route.query.focus ?? '')}|${String(route.query.suggest ?? '')}`,
+  () => {
+    void nextTick(() => {
+      applyRouteContext()
+    })
+  },
+  { immediate: true },
+)
+
 onMounted(loadRooms)
 </script>
 
 <template>
   <div class="page-wrap">
     <section class="page-hero cursor-card">
-      <div class="calendar-hero-copy">
-        <h2 class="page-title">会议室预约日历</h2>
+      <div class="page-hero__copy calendar-hero-copy">
+        <div class="page-title-row calendar-title-row">
+          <h2 class="page-title">会议室预约日历</h2>
+          <el-select v-model="roomId" placeholder="选择会议室" class="calendar-filter-room" @change="onRoomChange">
+            <el-option v-for="room in rooms" :key="room.id" :label="`${room.name}（容量 ${room.capacity}）`" :value="room.id" />
+          </el-select>
+        </div>
         <p class="page-subtitle calendar-page-subtitle">
           按时间轴查看会议室占用，拖拽即可快速发起预约申请，审批结果会实时同步到日历。
         </p>
       </div>
-      <div class="hero-actions calendar-filters">
-        <el-select v-model="roomId" placeholder="选择会议室" class="calendar-filter-room" @change="onRoomChange">
-          <el-option v-for="room in rooms" :key="room.id" :label="`${room.name}（容量 ${room.capacity}）`" :value="room.id" />
-        </el-select>
-        <el-button type="primary" class="btn-key-solid" :loading="loading" @click="loadRooms">刷新</el-button>
+      <div class="hero-actions calendar-hero-actions">
+        <el-button
+          type="primary"
+          class="btn-key-solid page-refresh-btn"
+          :icon="RefreshRight"
+          :loading="loading"
+          circle
+          title="刷新"
+          aria-label="刷新会议室预约日历"
+          @click="loadRooms"
+        />
       </div>
     </section>
 
+    <div v-if="contextHint" class="calendar-context-pill status-strip">{{ contextHint }}</div>
+
     <PageStatusPanel
       v-if="showBlockingState"
-      :tone="viewState === 'loading' ? 'loading' : 'danger'"
+      tone="danger"
       :title="stateTitle"
       :description="stateDescription"
-      :action-text="viewState === 'error' ? '重新加载' : ''"
+      action-text="重新加载"
       @action="loadRooms"
     />
 
@@ -463,9 +516,9 @@ onMounted(loadRooms)
             </div>
           </div>
           <div class="legend-row" aria-label="预约状态图例">
-            <span class="legend-item"><i class="dot approved" />已批准</span>
-            <span class="legend-item"><i class="dot pending" />待审批</span>
-            <span class="legend-item"><i class="dot rejected" />已拒绝</span>
+            <span class="legend-item legend-item--approved"><i class="dot approved" />已批准</span>
+            <span class="legend-item legend-item--pending"><i class="dot pending" />待审批</span>
+            <span class="legend-item legend-item--rejected"><i class="dot rejected" />已拒绝</span>
           </div>
         </div>
 
@@ -482,7 +535,7 @@ onMounted(loadRooms)
           你可以先前往“会议室管理”创建或启用会议室，再回来完成预约。
         </div>
         <div v-else class="calendar-wrap">
-          <FullCalendar :options="calendarOptions" />
+          <FullCalendar ref="calendarRef" :options="calendarOptions" />
         </div>
       </section>
 
@@ -514,13 +567,19 @@ onMounted(loadRooms)
   white-space: nowrap;
 }
 
+.calendar-context-pill {
+  margin-top: -2px;
+  margin-bottom: 12px;
+  max-width: min(100%, 72ch);
+}
+
 .calendar-main {
-  border-color: rgba(38, 38, 38, 0.1);
+  border-color: var(--surface-panel-border);
   background:
-    linear-gradient(180deg, rgba(250, 252, 254, 0.97), rgba(238, 243, 247, 0.9)),
+    linear-gradient(180deg, var(--surface-panel-top), var(--surface-panel-bottom)),
     var(--bg-card);
   box-shadow:
-    0 14px 30px rgba(20, 24, 28, 0.09),
+    var(--surface-panel-shadow),
     inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
@@ -554,9 +613,9 @@ onMounted(loadRooms)
   gap: 12px;
   flex-wrap: wrap;
   padding: 8px;
-  border: 1px solid var(--nested-surface-border);
+  border: 1px solid var(--surface-nested-border);
   border-radius: calc(var(--radius-unified) + 2px);
-  background: linear-gradient(180deg, var(--nested-surface-top), var(--nested-surface-bottom));
+  background: linear-gradient(180deg, var(--surface-nested-top), var(--surface-nested-bottom));
   color: var(--text-muted);
   font-size: 13px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
@@ -569,26 +628,44 @@ onMounted(loadRooms)
   min-height: 32px;
   padding: 0 10px;
   border-radius: 999px;
-  background: rgba(248, 251, 253, 0.88);
+  background: rgba(248, 248, 248, 0.92);
   border: 1px solid rgba(55, 63, 72, 0.1);
 }
 
 .dot {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 999px;
 }
 
 .dot.approved {
-  background: #4c5a55;
+  background: #5f7f6c;
 }
 
 .dot.pending {
-  background: #7d6850;
+  background: #9b875d;
 }
 
 .dot.rejected {
-  background: #8a5f61;
+  background: #957173;
+}
+
+.legend-item--approved {
+  border-color: rgba(95, 127, 108, 0.32);
+  background: rgba(95, 127, 108, 0.11);
+  color: #4f695a;
+}
+
+.legend-item--pending {
+  border-color: rgba(155, 135, 93, 0.34);
+  background: rgba(155, 135, 93, 0.13);
+  color: #6f6144;
+}
+
+.legend-item--rejected {
+  border-color: rgba(149, 113, 115, 0.36);
+  background: rgba(149, 113, 115, 0.13);
+  color: #75595b;
 }
 
 .calendar-tip {
@@ -602,43 +679,42 @@ onMounted(loadRooms)
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
-.tone-total,
-.tone-approved,
-.tone-pending,
-.tone-today {
-  min-height: 126px;
-}
-
 .calendar-wrap {
   overflow-x: auto;
   padding: 12px;
-  border: 1px solid rgba(55, 63, 72, 0.14);
+  border: 1px solid var(--surface-nested-border);
   border-radius: calc(var(--radius-unified) + 2px);
-  background: linear-gradient(180deg, rgba(248, 251, 254, 0.96), rgba(232, 238, 243, 0.92));
+  background: linear-gradient(180deg, var(--surface-nested-top), var(--surface-nested-bottom));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.74),
-    0 10px 22px rgba(20, 24, 28, 0.05);
+    var(--surface-nested-shadow);
 }
 
-.calendar-filters {
+.calendar-title-row {
+  align-items: center;
+}
+
+.calendar-hero-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: nowrap;
+  justify-content: flex-end;
+  flex: 0 0 auto;
 }
 
 .calendar-filter-room {
   width: 260px;
 }
 
-:deep(.calendar-filters .el-select__wrapper) {
+:deep(.calendar-title-row .el-select__wrapper) {
   min-height: var(--control-height);
   height: var(--control-height);
   border-radius: var(--radius-unified);
 }
 
-:deep(.calendar-filters .el-select__selected-item),
-:deep(.calendar-filters .el-select__placeholder) {
+:deep(.calendar-title-row .el-select__selected-item),
+:deep(.calendar-title-row .el-select__placeholder) {
   font-size: 14px;
   line-height: 1.2;
 }
@@ -692,7 +768,7 @@ onMounted(loadRooms)
 }
 
 :deep(.fc .fc-button:hover) {
-  background: rgba(239, 244, 248, 0.98) !important;
+  background: rgba(241, 241, 241, 0.98) !important;
   border-color: rgba(31, 31, 31, 0.16) !important;
 }
 
@@ -757,15 +833,15 @@ onMounted(loadRooms)
 }
 
 :deep(.calendar-event__inner--approved) {
-  background: linear-gradient(180deg, #3d4a46, #323d39);
+  background: linear-gradient(180deg, #6f8d7a, #5f7668);
 }
 
 :deep(.calendar-event__inner--pending) {
-  background: linear-gradient(180deg, #696159, #575049);
+  background: linear-gradient(180deg, #aa9467, #907b56);
 }
 
 :deep(.calendar-event__inner--rejected) {
-  background: linear-gradient(180deg, #76575b, #62484b);
+  background: linear-gradient(180deg, #a38182, #8d6b6d);
 }
 
 :deep(.calendar-event__inner--muted) {
@@ -791,10 +867,9 @@ onMounted(loadRooms)
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .calendar-filters {
-    width: 100%;
-    justify-content: flex-start;
+  .calendar-title-row {
     flex-wrap: wrap;
+    align-items: flex-start;
   }
 
   .calendar-filter-room {

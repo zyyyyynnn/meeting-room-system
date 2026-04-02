@@ -86,7 +86,7 @@ async function submit() {
   --auth-shell-accent-2: rgba(66, 84, 76, 0.11);
   --auth-shell-glow: rgba(255, 255, 255, 0.36);
   --auth-panel-bg: rgba(255, 255, 255, 0.46);
-  --auth-visual-bg: rgba(243, 246, 249, 0.7);
+  --auth-visual-bg: rgba(243, 243, 243, 0.7);
   --auth-divider: rgba(40, 40, 40, 0.13);
 }
 
@@ -96,7 +96,7 @@ async function submit() {
 }
 
 .register-shell :deep(.el-form-item) {
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 
 .register-shell :deep(.el-form-item__label) {

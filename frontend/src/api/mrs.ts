@@ -1,5 +1,14 @@
 import { http } from './http'
-import type { ApiResponse, ConflictSuggestion, Reservation, Room, RoomDayOccupancy, OverviewStats, UserAccount } from './types'
+import type {
+  ApiResponse,
+  ConflictSuggestion,
+  DashboardStatsResponse,
+  OverviewStats,
+  Reservation,
+  Room,
+  RoomDayOccupancy,
+  UserAccount,
+} from './types'
 
 export async function apiRegister(username: string, password: string) {
   const { data } = await http.post<ApiResponse<null>>('/api/auth/register', { username, password })
@@ -142,6 +151,11 @@ export async function apiAdminAuditLogs() {
 
 export async function apiOverviewStats() {
   const { data } = await http.get<ApiResponse<OverviewStats>>('/api/stats/overview')
+  return data
+}
+
+export async function apiDashboardStats() {
+  const { data } = await http.get<ApiResponse<DashboardStatsResponse>>('/api/stats/dashboard')
   return data
 }
 

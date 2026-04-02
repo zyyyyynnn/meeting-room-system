@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { RefreshRight } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getRequestErrorMessage } from '../api/http'
 import { apiUpdateUserEnabled, apiUpdateUserRole, apiUserList } from '../api/mrs'
@@ -36,15 +37,10 @@ const filteredUsers = computed(() => {
   })
 })
 
-const showBlockingState = computed(() => !hasLoadedOnce.value && viewState.value !== 'ready')
+const showBlockingState = computed(() => !hasLoadedOnce.value && viewState.value === 'error')
 const showInlineError = computed(() => hasLoadedOnce.value && viewState.value === 'error')
-const stateTitle = computed(() => (viewState.value === 'loading' ? '正在加载用户与权限数据' : '用户与权限数据暂时不可用'))
-const stateDescription = computed(() => {
-  if (viewState.value === 'loading') {
-    return '正在同步账号角色和启用状态，请稍候。'
-  }
-  return statusMessage.value || '当前无法获取用户列表，请稍后重试。'
-})
+const stateTitle = computed(() => '用户与权限数据暂时不可用')
+const stateDescription = computed(() => statusMessage.value || '当前无法获取用户列表，请稍后重试。')
 const emptyUserMessage = computed(() => {
   if (users.value.length) {
     return '当前筛选条件下暂无匹配账号，请调整筛选条件后再试。'
@@ -161,19 +157,30 @@ onMounted(reload)
 <template>
   <div class="page-wrap">
     <section class="page-hero cursor-card">
-      <div>
-        <h2 class="page-title">用户与权限管理</h2>
+      <div class="page-hero__copy">
+        <div class="page-title-row">
+          <h2 class="page-title">用户与权限管理</h2>
+          <el-button
+            type="primary"
+            class="btn-key-solid page-refresh-btn"
+            :icon="RefreshRight"
+            :loading="loading"
+            circle
+            title="刷新"
+            aria-label="刷新用户与权限管理"
+            @click="reload"
+          />
+        </div>
         <p class="page-subtitle">集中管理账号角色与启用状态，确保系统权限边界清晰可控。</p>
       </div>
-      <el-button type="primary" class="btn-key-solid" :loading="loading" @click="reload">刷新</el-button>
     </section>
 
     <PageStatusPanel
       v-if="showBlockingState"
-      :tone="viewState === 'loading' ? 'loading' : 'danger'"
+      tone="danger"
       :title="stateTitle"
       :description="stateDescription"
-      :action-text="viewState === 'error' ? '重新加载' : ''"
+      action-text="重新加载"
       @action="reload"
     />
 
@@ -188,31 +195,31 @@ onMounted(reload)
       />
 
       <section class="stats-grid user-stats-grid">
-        <article class="stat-card cursor-card">
+        <article class="stat-card cursor-card tone-total">
           <div class="k">用户总数</div>
           <div class="v">{{ users.length }}</div>
         </article>
-        <article class="stat-card cursor-card">
+        <article class="stat-card cursor-card tone-info">
           <div class="k">超级管理员</div>
           <div class="v">{{ users.filter((x) => x.role === 'SUPER_ADMIN').length }}</div>
         </article>
-        <article class="stat-card cursor-card">
+        <article class="stat-card cursor-card tone-info">
           <div class="k">管理员</div>
           <div class="v">{{ users.filter((x) => x.role === 'ADMIN').length }}</div>
         </article>
-        <article class="stat-card cursor-card">
+        <article class="stat-card cursor-card tone-disabled">
           <div class="k">已停用</div>
           <div class="v">{{ users.filter((x) => !x.enabled).length }}</div>
         </article>
       </section>
 
       <section class="cursor-card table-card user-table-card">
-        <div class="list-toolbar user-list-toolbar">
+        <div class="list-toolbar toolbar-row user-list-toolbar">
           <div class="section-head section-head--compact">
             <div class="section-title">账号列表</div>
             <div class="section-desc">统一查看账号信息，并直接调整角色与启用状态。</div>
           </div>
-          <div class="user-filters">
+          <div class="user-filters filter-bar">
             <el-input v-model="filters.keyword" clearable placeholder="搜索用户名" class="user-filter-keyword" />
             <el-select v-model="filters.role" class="user-filter-select">
               <el-option label="全部角色" value="ALL" />
@@ -229,8 +236,8 @@ onMounted(reload)
           </div>
         </div>
 
-        <el-table v-if="filteredUsers.length" class="users-table" :data="filteredUsers" style="width: 100%" :max-height="560">
-          <el-table-column label="账号" min-width="220">
+        <el-table v-if="filteredUsers.length" class="users-table" :data="filteredUsers" style="width: 100%" table-layout="fixed" :max-height="560">
+          <el-table-column label="账号" min-width="240">
             <template #default="{ row }">
               <div class="user-cell">
                 <div class="user-cell__head">
@@ -242,7 +249,7 @@ onMounted(reload)
             </template>
           </el-table-column>
 
-          <el-table-column label="角色" min-width="240">
+          <el-table-column label="角色" min-width="220">
             <template #default="{ row }">
               <div class="user-role-cell">
                 <el-select class="user-row-select" :model-value="row.role" :disabled="!canEditRole(row)" @change="handleRoleChange(row, $event)">
@@ -254,7 +261,7 @@ onMounted(reload)
             </template>
           </el-table-column>
 
-          <el-table-column label="启用状态" min-width="220">
+          <el-table-column label="启用状态" min-width="200">
             <template #default="{ row }">
               <div class="user-enabled-cell">
                 <div class="user-enabled-head">
@@ -277,16 +284,21 @@ onMounted(reload)
   gap: 14px;
 }
 
+.table-card .section-desc {
+  display: none;
+}
+
 .user-table-card {
-  padding-top: 20px;
+  padding-top: var(--panel-card-padding);
+  padding-bottom: var(--panel-card-padding);
 }
 
 .list-toolbar {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 0;
   flex-wrap: wrap;
 }
 
@@ -294,25 +306,31 @@ onMounted(reload)
   margin-bottom: 0;
 }
 
+.user-list-toolbar {
+  width: 100%;
+}
+
 .user-list-toolbar .section-head {
-  max-width: min(38ch, 100%);
+  flex: 1 1 320px;
+  max-width: min(44ch, 100%);
 }
 
 .user-filters {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 8px;
+  flex: 1 1 auto;
   flex-wrap: nowrap;
   margin-left: auto;
 }
 
 .user-filter-keyword {
-  width: 228px;
+  width: 236px;
 }
 
 .user-filter-select {
-  width: 148px;
+  width: 152px;
 }
 
 .user-filters__reset {
@@ -338,7 +356,8 @@ onMounted(reload)
 }
 
 .users-table :deep(.el-table__cell) {
-  vertical-align: top;
+  vertical-align: middle;
+  padding-block: 10px;
 }
 
 .user-cell,
@@ -380,15 +399,16 @@ onMounted(reload)
 }
 
 .user-row-select {
-  width: 176px;
+  width: min(188px, 100%);
 }
 
 .user-enabled-head {
   display: flex;
   align-items: center;
   gap: 12px;
-  width: 172px;
+  width: min(196px, 100%);
   min-height: var(--control-height);
+  justify-content: space-between;
   white-space: nowrap;
 }
 
@@ -410,8 +430,7 @@ onMounted(reload)
   }
 
   .list-toolbar {
-    align-items: flex-start;
-    margin-bottom: 12px;
+    margin-bottom: 0;
   }
 
   .user-filters {
@@ -426,7 +445,7 @@ onMounted(reload)
   }
 
   .user-filter-select {
-    width: 136px;
+    width: 144px;
   }
 }
 

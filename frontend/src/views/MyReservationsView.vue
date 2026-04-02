@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { RefreshRight } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useRoute } from 'vue-router'
 import { getRequestErrorMessage } from '../api/http'
 import type { Reservation } from '../api/types'
 import { apiCancelReservation, apiDeleteReservation, apiMyAuditLogs, apiMyRecent } from '../api/mrs'
@@ -17,11 +19,20 @@ const partialMessage = ref('')
 const hasLoadedOnce = ref(false)
 const list = ref<Reservation[]>([])
 const auditLogs = ref<string[]>([])
+const route = useRoute()
 
 const filters = reactive({
   keyword: '',
   status: 'ALL' as 'ALL' | 'APPROVED' | 'PENDING' | 'REJECTED' | 'CANCELLED',
 })
+
+function applyRouteFilters() {
+  const status = String(route.query.status ?? '').toUpperCase()
+  filters.status = ['ALL', 'APPROVED', 'PENDING', 'REJECTED', 'CANCELLED'].includes(status)
+    ? (status as typeof filters.status)
+    : 'ALL'
+  filters.keyword = typeof route.query.keyword === 'string' ? route.query.keyword : ''
+}
 
 function normalizeReservation(item: ReservationLike): Reservation {
   return {
@@ -74,16 +85,11 @@ const filteredList = computed(() => {
   })
 })
 
-const showBlockingState = computed(() => !hasLoadedOnce.value && viewState.value !== 'ready')
+const showBlockingState = computed(() => !hasLoadedOnce.value && viewState.value === 'error')
 const showInlineError = computed(() => hasLoadedOnce.value && viewState.value === 'error')
 const showPartialWarning = computed(() => hasLoadedOnce.value && viewState.value === 'ready' && !!partialMessage.value)
-const stateTitle = computed(() => (viewState.value === 'loading' ? '正在加载我的预约' : '我的预约暂时不可用'))
-const stateDescription = computed(() => {
-  if (viewState.value === 'loading') {
-    return '正在同步最近预约与审计日志，请稍候。'
-  }
-  return statusMessage.value || '当前无法获取预约记录，请稍后重试。'
-})
+const stateTitle = computed(() => '我的预约暂时不可用')
+const stateDescription = computed(() => statusMessage.value || '当前无法获取预约记录，请稍后重试。')
 const emptyListMessage = computed(() => {
   if (list.value.length) {
     return '当前筛选条件下暂无匹配的预约记录，请调整筛选条件后再试。'
@@ -201,25 +207,44 @@ function resetFilters() {
   filters.status = 'ALL'
 }
 
+watch(
+  () => route.query,
+  () => {
+    applyRouteFilters()
+  },
+  { immediate: true },
+)
+
 onMounted(reload)
 </script>
 
 <template>
   <div class="page-wrap">
     <section class="page-hero cursor-card">
-      <div>
-        <h2 class="page-title">我的预约</h2>
+      <div class="page-hero__copy">
+        <div class="page-title-row">
+          <h2 class="page-title">我的预约</h2>
+          <el-button
+            type="primary"
+            class="btn-key-solid page-refresh-btn"
+            :icon="RefreshRight"
+            :loading="loading"
+            circle
+            title="刷新"
+            aria-label="刷新我的预约"
+            @click="reload"
+          />
+        </div>
         <p class="page-subtitle">查看近 30 天预约记录，跟进审批进度并按需取消预约。</p>
       </div>
-      <el-button type="primary" class="btn-key-solid" :loading="loading" @click="reload">刷新</el-button>
     </section>
 
     <PageStatusPanel
       v-if="showBlockingState"
-      :tone="viewState === 'loading' ? 'loading' : 'danger'"
+      tone="danger"
       :title="stateTitle"
       :description="stateDescription"
-      :action-text="viewState === 'error' ? '重新加载' : ''"
+      action-text="重新加载"
       @action="reload"
     />
 
@@ -243,31 +268,31 @@ onMounted(reload)
       />
 
       <section class="stats-grid reservation-stats-grid">
-        <article class="stat-card cursor-card">
+        <article class="stat-card cursor-card tone-total">
           <div class="k">预约总数</div>
           <div class="v">{{ stats.total }}</div>
         </article>
-        <article class="stat-card cursor-card">
+        <article class="stat-card cursor-card tone-approved">
           <div class="k">已批准</div>
           <div class="v">{{ stats.approved }}</div>
         </article>
-        <article class="stat-card cursor-card">
+        <article class="stat-card cursor-card tone-pending">
           <div class="k">待审批</div>
           <div class="v">{{ stats.pending }}</div>
         </article>
-        <article class="stat-card cursor-card">
+        <article class="stat-card cursor-card tone-cancelled">
           <div class="k">已取消</div>
           <div class="v">{{ stats.cancelled }}</div>
         </article>
       </section>
 
       <section class="cursor-card table-card">
-        <div class="list-toolbar">
+        <div class="list-toolbar toolbar-row">
           <div class="section-head section-head--compact">
             <div class="section-title">预约列表</div>
             <div class="section-desc">按时间倒序展示最近记录。</div>
           </div>
-          <div class="reservation-filters">
+          <div class="reservation-filters filter-bar">
             <el-input v-model="filters.keyword" clearable placeholder="搜索会议室或备注" class="reservation-filter-keyword" />
             <el-select v-model="filters.status" class="reservation-filter-select">
               <el-option label="全部状态" value="ALL" />
@@ -301,8 +326,11 @@ onMounted(reload)
               <div class="row-actions row-actions--right">
                 <el-button
                   size="small"
-                  type="primary"
-                  class="btn-key-soft"
+                  :type="row.status === 'REJECTED' ? 'danger' : 'primary'"
+                  :class="[
+                    'reservation-cancel-btn',
+                    row.status === 'REJECTED' ? 'reservation-cancel-btn--rejected' : 'btn-key-soft',
+                  ]"
                   @click="cancel(row)"
                   :disabled="row.status === 'CANCELLED' || row.status === 'REJECTED'"
                 >
@@ -336,12 +364,16 @@ onMounted(reload)
   gap: 14px;
 }
 
+.table-card .section-desc {
+  display: none;
+}
+
 .list-toolbar {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 0;
   flex-wrap: wrap;
 }
 
@@ -398,6 +430,20 @@ onMounted(reload)
   justify-content: flex-end;
 }
 
+.reservation-cancel-btn--rejected {
+  --el-button-bg-color: rgba(124, 95, 98, 0.12) !important;
+  --el-button-border-color: rgba(124, 95, 98, 0.4) !important;
+  --el-button-text-color: #6a4f52 !important;
+}
+
+.reservation-cancel-btn--rejected.is-disabled,
+.reservation-cancel-btn--rejected:disabled {
+  opacity: 0.88 !important;
+  color: #6a4f52 !important;
+  background-color: rgba(124, 95, 98, 0.16) !important;
+  border-color: rgba(124, 95, 98, 0.4) !important;
+}
+
 .logs-wrap {
   counter-reset: audit-log;
   margin-top: 8px;
@@ -428,7 +474,7 @@ onMounted(reload)
   height: 24px;
   border-radius: 999px;
   border: 1px solid var(--nested-surface-border);
-  background: linear-gradient(180deg, var(--nested-surface-top), rgba(245, 248, 251, 0.92));
+  background: linear-gradient(180deg, var(--nested-surface-top), rgba(242, 242, 242, 0.92));
   display: grid;
   place-items: center;
   color: var(--text-muted);
@@ -463,7 +509,7 @@ onMounted(reload)
 
   .list-toolbar {
     align-items: flex-start;
-    margin-bottom: 12px;
+    margin-bottom: 0;
   }
 
   .reservation-filters {

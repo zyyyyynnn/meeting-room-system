@@ -22,4 +22,10 @@ public class StatsController {
   public ApiResponse<StatsDtos.OverviewResp> overview() {
     return ApiResponse.ok(statsService.overview());
   }
+
+  @PreAuthorize("isAuthenticated()")
+  @GetMapping("/dashboard")
+  public ApiResponse<StatsDtos.DashboardResp> dashboard() {
+    return ApiResponse.ok(statsService.dashboard());
+  }
 }

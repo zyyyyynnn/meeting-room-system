@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { RefreshRight } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useRoute } from 'vue-router'
 import { getRequestErrorMessage } from '../api/http'
 import type { Reservation } from '../api/types'
 import { apiAdminAuditLogs, apiApprove, apiPending, apiRecentReviewed, apiReject, apiRevokeReview } from '../api/mrs'
@@ -9,6 +11,7 @@ import { authStore } from '../store/auth'
 
 type ViewState = 'loading' | 'ready' | 'error'
 
+const route = useRoute()
 const loading = ref(false)
 const viewState = ref<ViewState>('loading')
 const statusMessage = ref('')
@@ -17,24 +20,38 @@ const hasLoadedOnce = ref(false)
 const list = ref<Reservation[]>([])
 const reviewed = ref<Reservation[]>([])
 const auditLogs = ref<string[]>([])
+const pendingSectionRef = ref<HTMLElement | null>(null)
+const reviewedSectionRef = ref<HTMLElement | null>(null)
 
 const isSuperAdmin = computed(() => authStore.isSuperAdmin.value)
-const showBlockingState = computed(() => !hasLoadedOnce.value && viewState.value !== 'ready')
+const showBlockingState = computed(() => !hasLoadedOnce.value && viewState.value === 'error')
 const showInlineError = computed(() => hasLoadedOnce.value && viewState.value === 'error')
 const showPartialWarning = computed(() => hasLoadedOnce.value && viewState.value === 'ready' && !!partialMessage.value)
-const stateTitle = computed(() => (viewState.value === 'loading' ? '正在加载审批数据' : '审批数据暂时不可用'))
-const stateDescription = computed(() => {
-  if (viewState.value === 'loading') {
-    return '正在同步待审批列表、已审批记录与审计日志，请稍候。'
-  }
-  return statusMessage.value || '当前无法获取审批数据，请稍后重试。'
+const focusHint = computed(() => {
+  const focus = String(route.query.focus ?? '').toLowerCase()
+  if (focus === 'reviewed') return '已按看板上下文定位到最近审批记录'
+  if (focus === 'pending') return '已按看板上下文定位到待审批队列'
+  return ''
 })
+const stateTitle = computed(() => '审批数据暂时不可用')
+const stateDescription = computed(() => statusMessage.value || '当前无法获取审批数据，请稍后重试。')
 
 const stats = computed(() => ({
   total: list.value.length,
   today: list.value.filter((x) => String(x?.startTime ?? '').slice(0, 10) === new Date().toISOString().slice(0, 10)).length,
   rooms: new Set(list.value.map((x) => x?.roomId)).size,
 }))
+
+function scrollToFocusedSection() {
+  const focus = String(route.query.focus ?? '').toLowerCase()
+  if (focus === 'reviewed' && isSuperAdmin.value) {
+    reviewedSectionRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    return
+  }
+  if (focus === 'pending') {
+    pendingSectionRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
 
 async function reload() {
   const preserveContent = hasLoadedOnce.value
@@ -70,6 +87,9 @@ async function reload() {
     partialMessage.value = warningMessages.join('；')
     hasLoadedOnce.value = true
     viewState.value = 'ready'
+    void nextTick(() => {
+      scrollToFocusedSection()
+    })
   } catch (error) {
     viewState.value = 'error'
     statusMessage.value = getRequestErrorMessage(error, '加载审批列表失败，请稍后重试。')
@@ -134,25 +154,48 @@ async function revoke(row: Reservation) {
   await reload()
 }
 
+watch(
+  () => route.query.focus,
+  () => {
+    void nextTick(() => {
+      scrollToFocusedSection()
+    })
+  },
+  { immediate: true },
+)
+
 onMounted(reload)
 </script>
 
 <template>
   <div class="page-wrap">
     <section class="page-hero cursor-card">
-      <div>
-        <h2 class="page-title">预约审批</h2>
+      <div class="page-hero__copy">
+        <div class="page-title-row">
+          <h2 class="page-title">预约审批</h2>
+          <el-button
+            type="primary"
+            class="btn-key-solid page-refresh-btn"
+            :icon="RefreshRight"
+            :loading="loading"
+            circle
+            title="刷新"
+            aria-label="刷新预约审批"
+            @click="reload"
+          />
+        </div>
         <p class="page-subtitle">管理员负责审批待处理预约；超级管理员可撤销历史审批结果并重新审核。</p>
       </div>
-      <el-button type="primary" class="btn-key-solid" :loading="loading" @click="reload">刷新</el-button>
     </section>
+
+    <div v-if="focusHint" class="focus-pill focus-pill--block status-strip">{{ focusHint }}</div>
 
     <PageStatusPanel
       v-if="showBlockingState"
-      :tone="viewState === 'loading' ? 'loading' : 'danger'"
+      tone="danger"
       :title="stateTitle"
       :description="stateDescription"
-      :action-text="viewState === 'error' ? '重新加载' : ''"
+      action-text="重新加载"
       @action="reload"
     />
 
@@ -181,7 +224,7 @@ onMounted(reload)
         <article class="stat-card cursor-card"><div class="k">涉及会议室</div><div class="v">{{ stats.rooms }}</div></article>
       </section>
 
-      <section class="cursor-card table-card">
+      <section ref="pendingSectionRef" class="cursor-card table-card">
         <div class="section-head">
           <div class="section-title">待审批列表</div>
           <div class="section-desc">请根据会议用途与冲突情况进行批准或驳回。</div>
@@ -189,18 +232,19 @@ onMounted(reload)
 
         <el-table v-if="list.length" class="approvals-table" :data="list" style="width: 100%" :max-height="520">
           <el-table-column prop="id" label="ID" width="90" />
-          <el-table-column prop="roomId" label="会议室ID" width="110" />
-          <el-table-column prop="userId" label="用户ID" width="110" />
-          <el-table-column prop="startTime" label="开始" min-width="220" />
-          <el-table-column prop="endTime" label="结束" min-width="220" />
-          <el-table-column prop="reason" label="原因/备注">
+          <el-table-column label="申请信息" min-width="240">
             <template #default="{ row }">
-              <span>{{ row.reason || '-' }}</span>
+              <div class="reservation-cell">
+                <div class="reservation-cell__title">{{ row.roomName || `会议室 #${row.roomId}` }}</div>
+                <div class="reservation-cell__meta">申请人 {{ row.username || `用户 #${row.userId}` }}</div>
+              </div>
             </template>
           </el-table-column>
-          <el-table-column class-name="action-col" label="操作" width="210" align="right" header-align="center">
+          <el-table-column prop="startTime" label="开始时间" min-width="200" />
+          <el-table-column prop="endTime" label="结束时间" min-width="200" />
+          <el-table-column class-name="action-col" label="操作" width="188" align="right" header-align="center">
             <template #default="{ row }">
-              <div class="row-actions row-actions--right">
+              <div class="row-actions row-actions--right row-actions--inline">
                 <el-button size="small" type="primary" class="btn-key-soft" @click="approve(row)">批准</el-button>
                 <el-button size="small" type="primary" class="btn-key-solid" @click="reject(row)">驳回</el-button>
               </div>
@@ -210,7 +254,7 @@ onMounted(reload)
         <div v-else class="empty-state">当前没有待审批预约，新的申请提交后会自动出现在这里。</div>
       </section>
 
-      <section class="cursor-card table-card" v-if="isSuperAdmin">
+      <section ref="reviewedSectionRef" class="cursor-card table-card" v-if="isSuperAdmin">
         <div class="section-head">
           <div class="section-title">最近已审批记录（超级管理员）</div>
           <div class="section-desc">可将已通过/已驳回预约撤销为待审批，用于重新审查。</div>
@@ -273,7 +317,11 @@ onMounted(reload)
 }
 
 .stats-grid .stat-card {
-  min-height: 126px;
+  min-height: var(--stat-card-min-height);
+}
+
+.table-card .section-desc {
+  display: none;
 }
 
 :deep(.approvals-table .el-table__body .cell) {
@@ -289,6 +337,44 @@ onMounted(reload)
 
 .row-actions--right {
   justify-content: flex-end;
+}
+
+.row-actions--inline {
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.row-actions--inline :deep(.el-button) {
+  min-width: 66px;
+}
+
+.reservation-cell {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.reservation-cell__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.42;
+}
+
+.reservation-cell__meta {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.56;
+}
+
+.focus-pill {
+  max-width: min(100%, 70ch);
+}
+
+.focus-pill--block {
+  margin-top: -2px;
+  margin-bottom: 12px;
 }
 
 .approvals-table--reviewed .row-actions--right {
@@ -326,7 +412,7 @@ onMounted(reload)
   height: 24px;
   border-radius: 999px;
   border: 1px solid var(--nested-surface-border);
-  background: linear-gradient(180deg, var(--nested-surface-top), rgba(245, 248, 251, 0.92));
+  background: linear-gradient(180deg, var(--nested-surface-top), rgba(242, 242, 242, 0.92));
   display: grid;
   place-items: center;
   color: var(--text-muted);
@@ -369,6 +455,15 @@ onMounted(reload)
 
   .row-actions :deep(.el-button) {
     width: 100%;
+  }
+
+  .row-actions--inline {
+    width: auto;
+  }
+
+  .row-actions--inline :deep(.el-button) {
+    width: auto;
+    flex: 0 0 auto;
   }
 }
 </style>

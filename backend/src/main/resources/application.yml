@@ -36,6 +36,8 @@ app:
     super-admin-username: ${BOOTSTRAP_SUPER_ADMIN_USERNAME:root}
     super-admin-password: ${BOOTSTRAP_SUPER_ADMIN_PASSWORD:Root@123456}
     reset-admin-password-on-start: ${BOOTSTRAP_RESET_ADMIN_PASSWORD_ON_START:true}
+    seed-demo-data-on-start: ${BOOTSTRAP_SEED_DEMO_DATA_ON_START:true}
+    demo-user-password: ${BOOTSTRAP_DEMO_USER_PASSWORD:demo123}
   reservation-rules:
     max-duration-minutes: ${RULE_MAX_DURATION_MINUTES:120}
     max-advance-days: ${RULE_MAX_ADVANCE_DAYS:7}
@@ -44,4 +46,3 @@ app:
 logging:
   level:
     "[com.example]": info
-

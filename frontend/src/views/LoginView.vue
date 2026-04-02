@@ -130,7 +130,7 @@ async function submit() {
 <style scoped>
 .login-shell {
   --auth-panel-bg: rgba(255, 255, 255, 0.5);
-  --auth-visual-bg: rgba(243, 246, 249, 0.72);
+  --auth-visual-bg: rgba(243, 243, 243, 0.72);
   --auth-divider: rgba(44, 44, 44, 0.14);
 }
 
@@ -142,7 +142,7 @@ async function submit() {
 }
 
 .login-shell .auth-panel {
-  padding: clamp(8px, 0.8vw, 10px);
+  padding: var(--auth-panel-padding-block) var(--auth-panel-padding-inline);
 }
 
 .login-shell .scene-title {
@@ -158,7 +158,7 @@ async function submit() {
 }
 
 .login-shell .login-status-panel {
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .login-shell :deep(.el-form) {
@@ -167,7 +167,7 @@ async function submit() {
 }
 
 .login-shell :deep(.el-form-item) {
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 
 .login-shell :deep(.el-form-item__label) {

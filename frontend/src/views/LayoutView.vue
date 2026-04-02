@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -23,8 +23,35 @@ const active = computed(() => route.path)
 const noticeDrawerOpen = ref(false)
 const notifications = ref<string[]>([])
 const noticeLoading = ref(false)
+const blockedNoticeMarkers = ['示例数据已生成', '本周已补充预约', '界面联调', '运营看板、审批与趋势图层']
+const meetingNoticeMarkers = ['预约', '会议', '审批', '维护', '会议室', '房间', '参会']
 
 const noticeCount = computed(() => notifications.value.length)
+const noticeStats = computed(() => {
+  const items = notifications.value
+  const reservation = items.filter((item) => /预约|会议/.test(item)).length
+  const approval = items.filter((item) => /审批|通过|驳回|拒绝/.test(item)).length
+  return {
+    total: items.length,
+    reservation,
+    approval,
+    system: Math.max(0, items.length - reservation - approval),
+  }
+})
+const latestNotice = computed(() => notifications.value[0] ?? '暂无通知，新的预约提醒、审批回执和系统消息会显示在这里。')
+
+function shouldDisplayNotice(item: string) {
+  const text = String(item ?? '').trim()
+  if (!text) return false
+  if (blockedNoticeMarkers.some((marker) => text.includes(marker))) {
+    return false
+  }
+  return meetingNoticeMarkers.some((marker) => text.includes(marker))
+}
+
+function sanitizeNotifications(items: string[]) {
+  return items.filter(shouldDisplayNotice)
+}
 
 async function openNotifications() {
   noticeDrawerOpen.value = true
@@ -35,11 +62,29 @@ async function openNotifications() {
       ElMessage.error(resp.message)
       return
     }
-    notifications.value = Array.isArray(resp.data) ? resp.data : []
+    notifications.value = sanitizeNotifications(Array.isArray(resp.data) ? resp.data : [])
   } finally {
     noticeLoading.value = false
   }
 }
+
+function closeNotifications() {
+  noticeDrawerOpen.value = false
+  if (route.query.panel === 'notifications') {
+    const { panel, ...rest } = route.query
+    router.replace({ path: route.path, query: rest })
+  }
+}
+
+watch(
+  () => route.query.panel,
+  (panel) => {
+    if (panel === 'notifications') {
+      void openNotifications()
+    }
+  },
+  { immediate: true },
+)
 
 function logout() {
   authStore.clear()
@@ -117,27 +162,45 @@ function logout() {
       </div>
     </header>
 
-    <button class="notice-float-btn" type="button" @click="openNotifications" aria-label="Open notifications">
+    <button class="notice-float-btn" type="button" @click="openNotifications" aria-label="打开通知抽屉">
       <el-icon class="notice-float-btn__icon"><Bell /></el-icon>
+      <span class="notice-float-btn__text">通知</span>
       <span v-if="noticeCount" class="notice-float-btn__badge">{{ noticeCount }}</span>
     </button>
 
-    <el-drawer v-model="noticeDrawerOpen" title="通知中心" size="min(440px, 92vw)">
-      <div v-loading="noticeLoading" class="notice-list">
-        <div class="notice-panel-head">
+    <el-drawer v-model="noticeDrawerOpen" title="通知" size="min(460px, 92vw)" @close="closeNotifications">
+      <div v-loading="noticeLoading" class="notice-drawer">
+        <section class="notice-drawer__hero">
+          <div class="notice-drawer__eyebrow">Notification Hub</div>
+          <div class="notice-drawer__title">通知中心</div>
+          <div class="notice-drawer__count">{{ noticeStats.total }}</div>
+          <div class="notice-drawer__metrics">
+            <span class="notice-drawer__metric">预约 {{ noticeStats.reservation }}</span>
+            <span class="notice-drawer__metric">审批 {{ noticeStats.approval }}</span>
+            <span class="notice-drawer__metric">系统 {{ noticeStats.system }}</span>
+          </div>
+          <div class="notice-drawer__latest">{{ latestNotice }}</div>
+        </section>
+
+        <section class="notice-panel-head">
           <div>
-            <div class="notice-panel-title">最新提醒</div>
-            <div class="notice-panel-subtitle">预约状态、审批结果和系统消息会集中展示在这里。</div>
+            <div class="notice-panel-title">最近通知</div>
+            <div class="notice-panel-subtitle">预约状态、审批结果和系统消息统一沉淀在这里，随时从右侧拉出查看。</div>
           </div>
           <div class="notice-panel-count">{{ noticeCount }} 条</div>
-        </div>
+        </section>
 
         <el-empty v-if="!notifications.length && !noticeLoading" description="暂无通知" />
 
         <div v-else class="notice-items">
-          <article class="notice-item" v-for="(item, idx) in notifications" :key="`notice-${idx}`">
+          <article class="notice-item" :class="{ 'is-latest': idx === 0 }" v-for="(item, idx) in notifications" :key="`notice-${idx}`">
             <span class="notice-item__index">{{ idx + 1 }}</span>
-            <span class="notice-item__text">{{ item }}</span>
+            <div class="notice-item__body">
+              <div class="notice-item__head">
+                <span class="notice-item__badge">{{ idx === 0 ? '最新' : '记录' }}</span>
+              </div>
+              <span class="notice-item__text">{{ item }}</span>
+            </div>
           </article>
         </div>
       </div>
@@ -146,11 +209,9 @@ function logout() {
     <div class="workspace-body">
       <main class="workspace-main cursor-main-panel">
         <router-view v-slot="{ Component, route: childRoute }">
-          <transition name="workspace-view" mode="out-in" appear>
-            <div :key="childRoute.fullPath" class="workspace-page">
-              <component :is="Component" />
-            </div>
-          </transition>
+          <keep-alive>
+            <component :is="Component" :key="childRoute.path" class="workspace-page" />
+          </keep-alive>
         </router-view>
       </main>
     </div>
@@ -185,7 +246,7 @@ function logout() {
   padding: 0 30px;
   border-bottom: 1px solid var(--line-soft);
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.88) 0%, rgba(245, 248, 250, 0.8) 52%, rgba(238, 242, 245, 0.72) 100%),
+    linear-gradient(145deg, var(--surface-hero-top) 0%, var(--surface-hero-bottom) 100%),
     var(--bg-card);
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -301,11 +362,11 @@ function logout() {
   position: relative;
   overflow: hidden;
   transition:
-    transform var(--motion-fast) var(--motion-ease-emphasis),
-    box-shadow var(--motion-base) var(--motion-ease-out),
-    border-color var(--motion-fast) var(--motion-ease-out),
-    background-color var(--motion-fast) var(--motion-ease-out),
-    color var(--motion-fast) var(--motion-ease-out);
+    transform var(--motion-feedback) var(--motion-ease-out),
+    box-shadow var(--motion-hover) var(--motion-ease-out),
+    border-color var(--motion-feedback) var(--motion-ease-out),
+    background-color var(--motion-feedback) var(--motion-ease-out),
+    color var(--motion-feedback) var(--motion-ease-out);
   scroll-snap-align: start;
 }
 
@@ -320,26 +381,27 @@ function logout() {
   background: currentColor;
   transform: scaleX(0);
   transform-origin: center;
-  transition: transform var(--motion-base) var(--motion-ease-emphasis);
+  transition: transform var(--motion-hover) var(--motion-ease-out);
   opacity: 0.82;
 }
 
 .nav-chip:hover {
-  transform: translate3d(0, -2px, 0);
+  transform: translate3d(0, -0.5px, 0);
   border-color: var(--line-strong);
-  box-shadow: 0 5px 12px rgba(20, 24, 28, 0.08);
+  background: rgba(245, 245, 245, 0.92);
+  box-shadow: 0 3px 8px rgba(20, 24, 28, 0.06);
 }
 
 .nav-chip:active {
   transform: translate3d(0, 0, 0) scale(0.99);
-  box-shadow: 0 2px 6px rgba(20, 24, 28, 0.08);
+  box-shadow: 0 2px 5px rgba(20, 24, 28, 0.06);
 }
 
 .nav-chip.active {
   background: var(--accent);
   color: var(--bg-card-strong);
   border-color: var(--accent);
-  box-shadow: 0 8px 18px rgba(20, 24, 28, 0.16);
+  box-shadow: 0 6px 14px rgba(20, 24, 28, 0.12);
 }
 
 .nav-chip.active::after {
@@ -396,22 +458,23 @@ function logout() {
   background: var(--bg-card);
   box-sizing: border-box;
   transition:
-    transform var(--motion-fast) var(--motion-ease-emphasis),
-    box-shadow var(--motion-base) var(--motion-ease-out),
-    border-color var(--motion-fast) var(--motion-ease-out),
-    background-color var(--motion-fast) var(--motion-ease-out),
-    color var(--motion-fast) var(--motion-ease-out);
+    transform var(--motion-feedback) var(--motion-ease-out),
+    box-shadow var(--motion-hover) var(--motion-ease-out),
+    border-color var(--motion-feedback) var(--motion-ease-out),
+    background-color var(--motion-feedback) var(--motion-ease-out),
+    color var(--motion-feedback) var(--motion-ease-out);
 }
 
 .logout-btn:hover {
-  transform: translate3d(0, -2px, 0);
+  transform: translate3d(0, -0.5px, 0);
   border-color: var(--line-strong);
-  box-shadow: 0 5px 12px rgba(20, 24, 28, 0.08);
+  background: rgba(245, 245, 245, 0.92);
+  box-shadow: 0 3px 8px rgba(20, 24, 28, 0.06);
 }
 
 .logout-btn:active {
   transform: translate3d(0, 0, 0) scale(0.99);
-  box-shadow: 0 2px 6px rgba(20, 24, 28, 0.08);
+  box-shadow: 0 2px 5px rgba(20, 24, 28, 0.06);
 }
 
 .nav-chip:focus-visible,
@@ -428,43 +491,57 @@ function logout() {
   top: 50%;
   transform: translate3d(0, var(--notice-float-offset), 0);
   z-index: 30;
-  width: 54px;
+  min-width: 64px;
   height: 54px;
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-unified);
-  background: var(--bg-card);
+  background:
+    linear-gradient(180deg, var(--surface-nested-top), var(--surface-nested-bottom)),
+    var(--bg-card);
   box-shadow:
-    0 10px 24px rgba(15, 23, 42, 0.12),
+    var(--surface-nested-shadow),
     inset 0 1px 0 rgba(255, 255, 255, 0.72);
   color: var(--text-muted);
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-direction: column;
+  gap: 2px;
   cursor: pointer;
   transition:
-    transform var(--motion-fast) var(--motion-ease-emphasis),
-    box-shadow var(--motion-base) var(--motion-ease-out),
-    border-color var(--motion-fast) var(--motion-ease-out),
-    background-color var(--motion-fast) var(--motion-ease-out),
-    color var(--motion-fast) var(--motion-ease-out);
+    transform var(--motion-feedback) var(--motion-ease-out),
+    box-shadow var(--motion-hover) var(--motion-ease-out),
+    border-color var(--motion-feedback) var(--motion-ease-out),
+    background-color var(--motion-feedback) var(--motion-ease-out),
+    color var(--motion-feedback) var(--motion-ease-out);
 }
 
 .notice-float-btn:hover {
-  transform: translate3d(-2px, calc(var(--notice-float-offset) - 2px), 0);
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--bg-card-strong);
+  transform: translate3d(0, calc(var(--notice-float-offset) - 0.5px), 0);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+  border-color: var(--line-strong);
+  background:
+    linear-gradient(180deg, rgba(252, 252, 252, 0.98), rgba(239, 239, 239, 0.92)),
+    var(--bg-card);
+  color: var(--text-main);
 }
 
 .notice-float-btn:active {
   transform: translate3d(0, var(--notice-float-offset), 0) scale(0.985);
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.08);
 }
 
 .notice-float-btn__icon {
-  font-size: 21px;
+  font-size: 18px;
   color: currentColor;
+}
+
+.notice-float-btn__text {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
 }
 
 .notice-float-btn__badge {
@@ -484,23 +561,90 @@ function logout() {
   font-weight: 700;
 }
 
-.notice-list {
+.notice-drawer {
   min-height: 220px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
+}
+
+.notice-drawer__hero {
+  border: 1px solid var(--surface-hero-border);
+  border-radius: calc(var(--radius-unified) + 4px);
+  padding: 20px;
+  background:
+    radial-gradient(circle at 16% 18%, rgba(255, 255, 255, 0.58), transparent 34%),
+    linear-gradient(180deg, var(--surface-hero-top), var(--surface-hero-bottom));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.76),
+    var(--surface-hero-shadow);
+}
+
+.notice-drawer__eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-weak);
+}
+
+.notice-drawer__title {
+  margin-top: 6px;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--text-main);
+}
+
+.notice-drawer__count {
+  margin-top: 10px;
+  font-family: var(--font-numeric);
+  font-size: 38px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-main);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+.notice-drawer__metrics {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.notice-drawer__metric {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--surface-nested-border);
+  background: linear-gradient(180deg, var(--surface-nested-top), var(--surface-nested-bottom));
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.notice-drawer__latest {
+  margin-top: 12px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.74;
 }
 
 .notice-panel-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
+  min-height: 58px;
   padding: 14px 16px;
-  border: 1px solid var(--nested-surface-border);
+  border: 1px solid var(--surface-nested-border);
   border-radius: calc(var(--radius-unified) + 2px);
   background:
-    linear-gradient(180deg, var(--nested-surface-top), var(--nested-surface-bottom)),
+    linear-gradient(180deg, var(--surface-nested-top), var(--surface-nested-bottom)),
     var(--bg-card);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
@@ -515,17 +659,14 @@ function logout() {
 }
 
 .notice-panel-subtitle {
-  margin-top: 4px;
-  font-size: 14px;
-  line-height: 1.68;
-  color: var(--text-weak);
+  display: none;
 }
 
 .notice-panel-count {
   padding: 6px 10px;
   border-radius: calc(var(--radius-unified) + 2px);
-  border: 1px solid var(--nested-surface-border);
-  background: linear-gradient(180deg, var(--nested-surface-top), var(--nested-surface-bottom));
+  border: 1px solid var(--surface-nested-border);
+  background: linear-gradient(180deg, var(--surface-nested-top), var(--surface-nested-bottom));
   color: var(--accent);
   font-size: 12px;
   font-weight: 700;
@@ -536,22 +677,27 @@ function logout() {
 .notice-items {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .notice-item {
   position: relative;
   display: grid;
   grid-template-columns: 34px 1fr;
-  gap: 14px;
+  gap: 12px;
   align-items: flex-start;
-  border: 1px solid var(--nested-surface-border);
+  border: 1px solid var(--surface-nested-border);
   border-radius: calc(var(--radius-unified) + 2px);
-  padding: 14px 15px 14px 14px;
+  padding: 14px 16px 14px 14px;
   background:
-    linear-gradient(180deg, var(--nested-surface-top), var(--nested-surface-bottom)),
+    linear-gradient(180deg, var(--surface-nested-top), var(--surface-nested-bottom)),
     var(--bg-card);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.notice-item.is-latest {
+  border-color: rgba(55, 63, 72, 0.14);
+  background: linear-gradient(180deg, rgba(252, 252, 252, 0.96), var(--nested-surface-bottom-strong));
 }
 
 .notice-item::after {
@@ -570,12 +716,39 @@ function logout() {
   border-radius: calc(var(--radius-unified) + 2px);
   display: grid;
   place-items: center;
-  border: 1px solid var(--nested-surface-border);
-  background: linear-gradient(180deg, var(--nested-surface-top), var(--nested-surface-bottom));
+  border: 1px solid var(--surface-nested-border);
+  background: linear-gradient(180deg, var(--surface-nested-top), var(--surface-nested-bottom));
   color: var(--accent);
   font-size: 12px;
   font-weight: 700;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.notice-item__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notice-item__head {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+}
+
+.notice-item__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(31, 31, 31, 0.06);
+  border: 1px solid rgba(31, 31, 31, 0.1);
+  color: var(--text-main);
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .notice-item__text {
@@ -603,35 +776,11 @@ function logout() {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 24px 24px 0;
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
 }
 
 .workspace-page {
   min-height: 100%;
-}
-
-.workspace-view-enter-active {
-  transition:
-    opacity 380ms var(--motion-ease-emphasis),
-    transform 380ms var(--motion-ease-emphasis);
-}
-
-.workspace-view-leave-active {
-  transition:
-    opacity 220ms var(--motion-ease-out),
-    transform 220ms var(--motion-ease-out);
-}
-
-.workspace-view-enter-from,
-.workspace-view-leave-to {
-  opacity: 0;
-  transform: translate3d(0, 14px, 0);
-}
-
-.workspace-view-enter-to,
-.workspace-view-leave-from {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
 }
 
 .workspace-main :deep(.page-wrap) {
@@ -740,12 +889,16 @@ function logout() {
 @media (max-width: 820px) {
   .notice-float-btn {
     right: 10px;
-    width: 48px;
+    min-width: 52px;
     height: 48px;
   }
 
   .notice-float-btn__icon {
-    font-size: 19px;
+    font-size: 17px;
+  }
+
+  .notice-float-btn__text {
+    font-size: 12px;
   }
 }
 </style>

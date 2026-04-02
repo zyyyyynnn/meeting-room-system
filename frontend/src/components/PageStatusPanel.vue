@@ -53,12 +53,12 @@ const iconComponent = computed(() => {
   gap: 14px;
   padding: 16px 18px;
   border-radius: calc(var(--radius-unified) + 2px);
-  border: 1px solid rgba(38, 38, 38, 0.1);
+  border: 1px solid var(--surface-panel-border);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(243, 246, 249, 0.82)),
+    linear-gradient(180deg, var(--surface-panel-top), var(--surface-panel-bottom)),
     var(--bg-card);
   box-shadow:
-    0 14px 26px rgba(20, 24, 28, 0.08),
+    var(--surface-panel-shadow),
     inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
@@ -68,7 +68,7 @@ const iconComponent = computed(() => {
   border-radius: var(--radius-unified);
   display: grid;
   place-items: center;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(242, 245, 248, 0.82));
+  background: linear-gradient(180deg, var(--surface-nested-top), var(--surface-nested-bottom));
   color: var(--text-main);
   font-size: 20px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.74);
@@ -96,42 +96,42 @@ const iconComponent = computed(() => {
 }
 
 .status-panel--info {
-  border-color: rgba(64, 72, 80, 0.16);
+  border-color: var(--tone-info-border);
 }
 
 .status-panel--warning {
-  border-color: rgba(112, 98, 78, 0.18);
+  border-color: var(--tone-warning-border);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(245, 243, 238, 0.82)),
+    linear-gradient(180deg, var(--surface-panel-top), rgba(245, 243, 238, 0.84)),
     var(--bg-card);
 }
 
 .status-panel--warning .status-panel__icon {
-  color: #665847;
+  color: var(--tone-warning-text);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(243, 239, 232, 0.86));
 }
 
 .status-panel--danger {
-  border-color: rgba(113, 88, 90, 0.18);
+  border-color: var(--tone-danger-border);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(245, 240, 241, 0.84)),
+    linear-gradient(180deg, var(--surface-panel-top), rgba(245, 240, 241, 0.86)),
     var(--bg-card);
 }
 
 .status-panel--danger .status-panel__icon {
-  color: #6a5052;
+  color: var(--tone-danger-text);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(243, 234, 235, 0.88));
 }
 
 .status-panel--loading {
-  border-color: rgba(64, 72, 80, 0.16);
+  border-color: var(--tone-info-border);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(243, 246, 249, 0.84)),
+    linear-gradient(180deg, var(--surface-panel-top), var(--surface-panel-bottom)),
     var(--bg-card);
 }
 
 .status-panel--loading .status-panel__icon {
-  color: var(--accent);
+  color: var(--tone-info-text);
 }
 
 .is-spinning {

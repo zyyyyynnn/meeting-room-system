@@ -13,7 +13,7 @@ const appRouteKey = computed(() => {
 
 <template>
   <router-view v-slot="{ Component }">
-    <transition name="app-shell" mode="out-in" appear>
+    <transition name="app-shell" mode="out-in">
       <div :key="appRouteKey" class="app-route-shell">
         <component :is="Component" />
       </div>
@@ -29,26 +29,22 @@ const appRouteKey = computed(() => {
 }
 
 .app-shell-enter-active {
-  transition:
-    opacity 520ms var(--motion-ease-emphasis),
-    transform 520ms var(--motion-ease-emphasis);
+  transition: opacity 140ms var(--motion-ease-out);
+  will-change: opacity;
 }
 
 .app-shell-leave-active {
-  transition:
-    opacity 240ms var(--motion-ease-out),
-    transform 240ms var(--motion-ease-out);
+  transition: opacity 100ms var(--motion-ease-out);
+  will-change: opacity;
 }
 
 .app-shell-enter-from,
 .app-shell-leave-to {
   opacity: 0;
-  transform: translate3d(0, 16px, 0);
 }
 
 .app-shell-enter-to,
 .app-shell-leave-from {
   opacity: 1;
-  transform: translate3d(0, 0, 0);
 }
 </style>

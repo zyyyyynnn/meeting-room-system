@@ -32,6 +32,7 @@ declare module 'vue' {
     PageStatusPanel: typeof import('./components/PageStatusPanel.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    TypedText: typeof import('./components/TypedText.vue')['default']
   }
   export interface GlobalDirectives {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']

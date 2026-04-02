@@ -18,6 +18,7 @@ logs/
 # Runtime artifacts
 dump.rdb
 .playwright-cli/
+.superpowers/
 output/
 
 # Backend build output
