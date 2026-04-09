@@ -9,6 +9,7 @@ desktop.ini
 # Logs
 *.log
 logs/
+backend/*.log
 
 # Environment
 .env
@@ -28,3 +29,7 @@ backend/target/
 frontend/node_modules/
 frontend/dist/
 frontend/dist-ssr/
+
+# Python cache
+__pycache__/
+*.py[cod]
