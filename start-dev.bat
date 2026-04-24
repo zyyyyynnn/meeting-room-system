@@ -13,6 +13,8 @@ set "FRONTEND_URL=http://127.0.0.1:5175"
 set "MYSQL_HOST=127.0.0.1"
 set "MYSQL_PORT=3306"
 set "MYSQL_SERVICE=MySQL80"
+set "REDIS_HOST=127.0.0.1"
+set "REDIS_PORT=6379"
 
 echo [INFO] Meeting Room System startup check
 echo [INFO] Root: %ROOT%
@@ -69,6 +71,23 @@ if errorlevel 1 (
 echo [INFO] MySQL is reachable.
 echo.
 
+echo [INFO] Checking Redis at %REDIS_HOST%:%REDIS_PORT% ...
+call :check_redis
+if errorlevel 1 (
+  echo [ERROR] Redis is not reachable at %REDIS_HOST%:%REDIS_PORT%.
+  echo.
+  echo [FIX] Start Redis manually, then run this script again.
+  echo       Foreground command example:
+  echo         redis-server.exe --port %REDIS_PORT%
+  echo       If Redis is installed as a Windows service, start it from Services or with its service name.
+  echo       Verify with:
+  echo         redis-cli.exe -h %REDIS_HOST% -p %REDIS_PORT% ping
+  pause
+  exit /b 1
+)
+echo [INFO] Redis is reachable.
+echo.
+
 if not exist "%FRONTEND_DIR%\node_modules" (
   echo [INFO] Frontend dependencies missing, running npm install ...
   call npm --prefix "%FRONTEND_DIR%" install
@@ -96,6 +115,7 @@ if errorlevel 1 (
   echo [ERROR] Backend did not become healthy within %BACKEND_READY_TIMEOUT%s. Frontend will not start.
   echo.
   echo [CHECK] MySQL is still reachable at %MYSQL_HOST%:%MYSQL_PORT%.
+  echo [CHECK] Redis is still reachable at %REDIS_HOST%:%REDIS_PORT%.
   echo [CHECK] Backend config: backend\src\main\resources\application.yml
   echo [CHECK] If you use a local override, inspect application-local.yml too.
   echo [CHECK] Read the "Backend - Spring Boot" window logs for the first error.
@@ -122,6 +142,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$client = New-Object Net.Sockets.TcpClient;" ^
   "try {" ^
   "  $iar = $client.BeginConnect('%MYSQL_HOST%', [int]%MYSQL_PORT%, $null, $null);" ^
+  "  if (-not $iar.AsyncWaitHandle.WaitOne(2000, $false)) { exit 1 }" ^
+  "  $client.EndConnect($iar);" ^
+  "  exit 0;" ^
+  "} catch { exit 1 } finally { $client.Close() }"
+exit /b %errorlevel%
+
+:check_redis
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$client = New-Object Net.Sockets.TcpClient;" ^
+  "try {" ^
+  "  $iar = $client.BeginConnect('%REDIS_HOST%', [int]%REDIS_PORT%, $null, $null);" ^
   "  if (-not $iar.AsyncWaitHandle.WaitOne(2000, $false)) { exit 1 }" ^
   "  $client.EndConnect($iar);" ^
   "  exit 0;" ^
