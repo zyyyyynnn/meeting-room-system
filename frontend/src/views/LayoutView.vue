@@ -774,6 +774,7 @@ function logout() {
   position: relative;
   overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   overscroll-behavior: contain;
   padding: 24px 24px 0;
   scroll-behavior: auto;
