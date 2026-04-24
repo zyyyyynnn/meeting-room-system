@@ -119,8 +119,8 @@ function shortBucketLabel(label: string) {
   return String(label ?? '').split('-')[0] || label
 }
 
-function heatHeight(bucket: DashboardHeatmapBucket) {
-  return `${Math.max(10, bucket.occupancyPercent)}%`
+function heatScale(bucket: DashboardHeatmapBucket) {
+  return `scaleY(${Math.max(0.1, bucket.occupancyPercent / 100)})`
 }
 
 function trendHeight(value: number) {
@@ -289,7 +289,7 @@ onMounted(reload)
           <div v-for="bucket in heatmapBuckets" :key="bucket.label" class="heat-column" :class="`is-${bucket.load}`">
             <div class="heat-column__count">{{ bucket.reservationCount }}</div>
             <div class="heat-column__track">
-              <div class="heat-column__fill" :style="{ height: heatHeight(bucket) }"></div>
+              <div class="heat-column__fill" :style="{ transform: heatScale(bucket) }"></div>
             </div>
             <div class="heat-column__label">{{ shortBucketLabel(bucket.label) }}</div>
           </div>
@@ -425,8 +425,7 @@ onMounted(reload)
   padding: 14px;
   background: linear-gradient(180deg, var(--surface-nested-top), var(--surface-nested-bottom));
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.74),
-    var(--surface-nested-shadow);
+    inset 0 1px 0 rgba(255, 255, 255, 0.74);
 }
 
 .metric-card,
@@ -435,22 +434,6 @@ onMounted(reload)
 .task-item {
   min-height: var(--dashboard-compact-card-height);
   height: 100%;
-  transition:
-    transform var(--motion-feedback) var(--motion-ease-out),
-    border-color var(--motion-feedback) var(--motion-ease-out),
-    box-shadow var(--motion-hover) var(--motion-ease-out),
-    background-color var(--motion-feedback) var(--motion-ease-out);
-}
-
-.metric-card:hover,
-.risk-item:hover,
-.trend-summary-card:hover,
-.task-item:hover {
-  transform: translate3d(0, -1px, 0);
-  border-color: var(--line-strong);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.74),
-    0 10px 18px rgba(20, 24, 28, 0.07);
 }
 
 .metric-card,
@@ -518,7 +501,7 @@ onMounted(reload)
     var(--bg-card);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    var(--surface-nested-shadow);
+    0 1px 2px rgba(20, 24, 28, 0.03);
 }
 
 .stage-panel__head {
@@ -547,7 +530,7 @@ onMounted(reload)
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
   flex: 1;
   grid-auto-rows: minmax(var(--dashboard-compact-card-height), 1fr);
   align-items: stretch;
@@ -569,8 +552,7 @@ onMounted(reload)
   justify-content: flex-start;
   cursor: pointer;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    var(--surface-nested-shadow);
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
 .task-item__top {
@@ -649,10 +631,11 @@ onMounted(reload)
 
 .heat-column__fill {
   width: min(34px, 72%);
-  min-height: 10%;
+  height: 100%;
   border-radius: 999px;
   background: var(--tone-neutral-fill);
-  transition: height var(--motion-hover) var(--motion-ease-out);
+  transform-origin: bottom;
+  transition: transform var(--motion-hover) var(--motion-ease-out);
 }
 
 .heat-column.is-low .heat-column__fill {

@@ -165,7 +165,7 @@ async function cancel(r: Reservation) {
     cancelButtonText: '取消',
     confirmButtonText: '确定',
     cancelButtonClass: 'btn-key-soft cancel-btn-force',
-    confirmButtonClass: 'btn-key-solid confirm-btn-force',
+    confirmButtonClass: 'btn-danger-soft confirm-btn-force',
   })
 
   const resp = await apiCancelReservation(r.id)
@@ -189,7 +189,7 @@ async function removeReservation(r: Reservation) {
     cancelButtonText: '取消',
     confirmButtonText: '确定',
     cancelButtonClass: 'btn-key-soft cancel-btn-force',
-    confirmButtonClass: 'btn-key-solid confirm-btn-force',
+    confirmButtonClass: 'btn-danger-soft confirm-btn-force',
   })
 
   const resp = await apiDeleteReservation(r.id)
@@ -219,23 +219,25 @@ onMounted(reload)
 </script>
 
 <template>
-  <div class="page-wrap">
+  <div class="page-wrap reservation-page">
     <section class="page-hero cursor-card">
       <div class="page-hero__copy">
         <div class="page-title-row">
           <h2 class="page-title">我的预约</h2>
-          <el-button
-            type="primary"
-            class="btn-key-solid page-refresh-btn"
-            :icon="RefreshRight"
-            :loading="loading"
-            circle
-            title="刷新"
-            aria-label="刷新我的预约"
-            @click="reload"
-          />
         </div>
         <p class="page-subtitle">查看近 30 天预约记录，跟进审批进度并按需取消预约。</p>
+      </div>
+      <div class="hero-actions">
+        <el-button
+          type="primary"
+          class="btn-key-solid page-refresh-btn"
+          :icon="RefreshRight"
+          :loading="loading"
+          circle
+          title="刷新"
+          aria-label="刷新我的预约"
+          @click="reload"
+        />
       </div>
     </section>
 
@@ -306,22 +308,22 @@ onMounted(reload)
         </div>
 
         <el-table v-if="filteredList.length" class="reservation-table" :data="filteredList" style="width: 100%">
-          <el-table-column prop="roomName" label="会议室" width="180" />
-          <el-table-column prop="startTime" label="开始" width="180" />
-          <el-table-column prop="endTime" label="结束" width="180" />
-          <el-table-column label="状态" width="120">
+          <el-table-column prop="roomName" label="会议室" width="160" />
+          <el-table-column prop="startTime" label="开始" width="176" />
+          <el-table-column prop="endTime" label="结束" width="176" />
+          <el-table-column label="状态" width="112">
             <template #default="{ row }">
               <el-tag :type="statusType(row.status)" :class="{ 'tag-pending': row.status === 'PENDING' }" effect="plain">
                 {{ statusText(row.status) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="reason" label="原因/备注">
+          <el-table-column prop="reason" label="原因/备注" min-width="180">
             <template #default="{ row }">
               <span>{{ row.reason || '-' }}</span>
             </template>
           </el-table-column>
-          <el-table-column class-name="action-col" label="操作" width="200" align="right" header-align="center">
+          <el-table-column class-name="action-col" label="操作" width="184" align="right" header-align="center">
             <template #default="{ row }">
               <div class="row-actions row-actions--right">
                 <el-button
@@ -336,7 +338,7 @@ onMounted(reload)
                 >
                   取消
                 </el-button>
-                <el-button size="small" type="primary" class="btn-key-solid" @click="removeReservation(row)">删除</el-button>
+                <el-button size="small" type="primary" class="btn-danger-soft" @click="removeReservation(row)">删除</el-button>
               </div>
             </template>
           </el-table-column>
@@ -362,6 +364,19 @@ onMounted(reload)
 .reservation-stats-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
+}
+
+.reservation-page {
+  --stat-card-min-height: 96px;
+}
+
+.reservation-page .stat-card {
+  padding-block: 12px;
+}
+
+.reservation-page .stat-card .v {
+  margin-top: 6px;
+  font-size: clamp(1.84rem, 1.48rem + 0.78vw, 2.36rem);
 }
 
 .table-card .section-desc {
@@ -421,13 +436,14 @@ onMounted(reload)
 
 .row-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
   row-gap: 6px;
 }
 
 .row-actions--right {
   justify-content: flex-end;
+  flex-wrap: nowrap;
 }
 
 .reservation-cancel-btn--rejected {
@@ -546,6 +562,7 @@ onMounted(reload)
   .row-actions {
     width: 100%;
     justify-content: stretch;
+    flex-wrap: wrap;
   }
 
   .row-actions :deep(.el-button) {

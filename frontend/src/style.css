@@ -97,14 +97,14 @@
   --el-border-radius-small: var(--radius-unified);
   --el-border-radius-round: var(--radius-unified);
   --control-height: 42px;
-  --page-hero-min-height: 120px;
-  --page-hero-padding-block: 22px;
+  --page-hero-min-height: 108px;
+  --page-hero-padding-block: 18px;
   --page-hero-padding-inline: 24px;
-  --panel-card-padding: 18px;
-  --stat-card-min-height: 126px;
+  --panel-card-padding: 16px;
+  --stat-card-min-height: 110px;
   --toolbar-gap: 12px;
-  --toolbar-margin-bottom: 14px;
-  --filter-bar-padding-block: 7px;
+  --toolbar-margin-bottom: 12px;
+  --filter-bar-padding-block: 6px;
   --filter-bar-padding-inline: 8px;
   --overlay-header-padding: 20px 24px 16px;
   --overlay-body-padding: 20px 24px 22px;
@@ -140,7 +140,6 @@
   --surface-panel-bottom: rgba(241, 241, 241, 0.86);
   --surface-panel-border: rgba(38, 38, 38, 0.1);
   --surface-panel-shadow: 0 12px 26px rgba(20, 24, 28, 0.07);
-  --surface-panel-hover-shadow: 0 16px 28px rgba(20, 24, 28, 0.09);
   --surface-nested-top: rgba(250, 250, 250, 0.96);
   --surface-nested-bottom: rgba(238, 238, 238, 0.9);
   --surface-nested-border: rgba(66, 66, 66, 0.12);
@@ -250,11 +249,6 @@ a {
   border: 1px solid var(--line-soft);
   border-radius: var(--radius);
   box-shadow: var(--shadow-1);
-  transition:
-    transform var(--motion-hover) var(--motion-ease-out),
-    border-color var(--motion-feedback) var(--motion-ease-out),
-    box-shadow var(--motion-hover) var(--motion-ease-out),
-    background-color var(--motion-feedback) var(--motion-ease-out);
 }
 
 .cursor-layout .cursor-main-panel .cursor-card {
@@ -265,13 +259,6 @@ a {
   box-shadow:
     var(--surface-panel-shadow),
     inset 0 1px 0 rgba(255, 255, 255, 0.74);
-}
-
-.cursor-layout .cursor-main-panel .cursor-card:hover {
-  border-color: rgba(31, 31, 31, 0.18);
-  box-shadow:
-    var(--surface-panel-hover-shadow),
-    inset 0 1px 0 rgba(255, 255, 255, 0.78);
 }
 
 /* 登录后页面：按阅读顺序做由深到浅语义梯度 */
@@ -322,12 +309,6 @@ a {
     linear-gradient(180deg, var(--surface-panel-top) 0%, var(--surface-panel-bottom) 100%),
     var(--bg-card);
   border-color: var(--surface-panel-border);
-}
-
-.cursor-card:hover {
-  transform: translate3d(0, -1px, 0);
-  border-color: var(--line-strong);
-  box-shadow: var(--surface-panel-hover-shadow);
 }
 
 .surface-hero {
@@ -851,7 +832,7 @@ a {
 }
 
 .stat-card {
-  padding: 16px;
+  padding: 14px;
   border-color: var(--surface-panel-border);
   position: relative;
   overflow: hidden;
@@ -888,7 +869,7 @@ a {
 
 .stat-card .v,
 .stat-card .stat-value {
-  margin-top: 10px;
+  margin-top: 8px;
   font-family: var(--font-numeric);
   font-variant-numeric: tabular-nums;
   color: var(--text-main);
@@ -1007,8 +988,7 @@ a {
   border-radius: calc(var(--radius-unified) + 2px);
   background: linear-gradient(180deg, var(--surface-nested-top), var(--surface-nested-bottom));
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    var(--surface-nested-shadow);
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
 .table-card :is(.reservation-filters, .room-filters, .user-filters) .el-button {
@@ -1022,13 +1002,17 @@ a {
 .table-card .row-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
   row-gap: 6px;
 }
 
+.table-card .row-actions--right {
+  justify-content: flex-end;
+}
+
 .table-card .row-actions .el-button {
-  min-width: 72px;
+  min-width: 68px;
 }
 
 .table-card .row-actions .el-button--small {
@@ -1050,7 +1034,7 @@ a {
   border: 1px solid rgba(38, 38, 38, 0.1);
   border-radius: calc(var(--radius-unified) + 2px);
   overflow: hidden;
-  background: rgba(249, 249, 249, 0.82) !important;
+  background: rgba(250, 250, 250, 0.72) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
@@ -1168,6 +1152,23 @@ a {
     0 1px 2px rgba(20, 24, 28, 0.04);
 }
 
+.btn-danger-soft {
+  --el-button-bg-color: rgba(124, 95, 98, 0.1) !important;
+  --el-button-border-color: rgba(124, 95, 98, 0.34) !important;
+  --el-button-text-color: #674d50 !important;
+  --el-button-hover-text-color: #563f42 !important;
+  --el-button-active-text-color: #473436 !important;
+  --el-button-hover-bg-color: rgba(124, 95, 98, 0.15) !important;
+  --el-button-hover-border-color: rgba(124, 95, 98, 0.44) !important;
+  --el-button-active-bg-color: rgba(124, 95, 98, 0.2) !important;
+  --el-button-active-border-color: rgba(124, 95, 98, 0.5) !important;
+  --el-button-outline-color: rgba(124, 95, 98, 0.24) !important;
+  border-radius: var(--radius-unified) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.74),
+    0 1px 2px rgba(20, 24, 28, 0.04);
+}
+
 .el-button--default {
   --el-button-bg-color: rgba(255, 255, 255, 0.65);
   --el-button-border-color: var(--line-soft);
@@ -1218,6 +1219,19 @@ a {
   --el-button-active-bg-color: rgba(124, 95, 98, 0.22);
   --el-button-active-border-color: rgba(124, 95, 98, 0.58);
   --el-button-outline-color: rgba(124, 95, 98, 0.35);
+}
+
+.el-button.btn-danger-soft {
+  --el-button-bg-color: rgba(124, 95, 98, 0.1) !important;
+  --el-button-border-color: rgba(124, 95, 98, 0.34) !important;
+  --el-button-text-color: #674d50 !important;
+  --el-button-hover-text-color: #563f42 !important;
+  --el-button-active-text-color: #473436 !important;
+  --el-button-hover-bg-color: rgba(124, 95, 98, 0.15) !important;
+  --el-button-hover-border-color: rgba(124, 95, 98, 0.44) !important;
+  --el-button-active-bg-color: rgba(124, 95, 98, 0.2) !important;
+  --el-button-active-border-color: rgba(124, 95, 98, 0.5) !important;
+  --el-button-outline-color: rgba(124, 95, 98, 0.24) !important;
 }
 
 .el-button--info {
@@ -1455,6 +1469,8 @@ a {
   background: linear-gradient(180deg, rgba(249, 249, 249, 0.96), rgba(238, 238, 238, 0.88)) !important;
   color: var(--text-main) !important;
   border-bottom: 1px solid var(--line-soft) !important;
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
 }
 
 .el-table td.el-table__cell,
@@ -1469,8 +1485,8 @@ a {
 }
 
 .cursor-layout .el-table__cell {
-  padding-top: 12px !important;
-  padding-bottom: 12px !important;
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
 }
 
 .el-table tr:hover > td.el-table__cell {
@@ -1892,6 +1908,16 @@ a {
   --el-button-hover-border-color: var(--accent-strong) !important;
   --el-button-active-bg-color: var(--accent-strong) !important;
   --el-button-active-border-color: var(--accent-strong) !important;
+}
+
+.el-message-box__btns .el-button.btn-danger-soft {
+  --el-button-bg-color: rgba(124, 95, 98, 0.1) !important;
+  --el-button-border-color: rgba(124, 95, 98, 0.34) !important;
+  --el-button-text-color: #674d50 !important;
+  --el-button-hover-bg-color: rgba(124, 95, 98, 0.15) !important;
+  --el-button-hover-border-color: rgba(124, 95, 98, 0.44) !important;
+  --el-button-active-bg-color: rgba(124, 95, 98, 0.2) !important;
+  --el-button-active-border-color: rgba(124, 95, 98, 0.5) !important;
 }
 
 .el-alert {
