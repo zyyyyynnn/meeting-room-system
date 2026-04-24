@@ -129,7 +129,6 @@ meeting-room-system/
 ├── backend/              # Spring Boot 后端工程
 ├── frontend/             # Vue 3 前端工程
 ├── docs/                 # 实验文档、图示与项目截图
-├── .github/              # GitHub 配置
 ├── start-dev.bat         # Windows 一键启动脚本
 ├── .gitignore
 └── README.md
