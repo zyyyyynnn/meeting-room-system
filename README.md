@@ -28,6 +28,10 @@
 | 文档 | OpenAPI / Swagger 配置、课程实验文档 |
 | 附加依赖 | React 19、React DOM 19、`@paper-design/shaders-react`，仅用于动态 logo |
 
+## 系统架构
+
+![系统架构图](docs/diagrams/diagram-architecture-overview.png)
+
 ## 功能模块
 
 ### 认证与权限
@@ -76,6 +80,21 @@
 - Redis，默认端口 `6379`
 
 后端默认配置见 [backend/src/main/resources/application.yml](backend/src/main/resources/application.yml)。
+
+## 后端配置项
+
+| 环境变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `DB_URL` | `jdbc:mysql://127.0.0.1:3306/meeting_room?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&createDatabaseIfNotExist=true` | MySQL 连接地址 |
+| `DB_USERNAME` | `root` | 数据库用户名 |
+| `DB_PASSWORD` | `mysql123456` | 数据库密码 |
+| `REDIS_HOST` | `localhost` | Redis 主机 |
+| `REDIS_PORT` | `6379` | Redis 端口 |
+| `JWT_SECRET` | `dev-jwt-secret-change-me-at-least-32-bytes` | JWT 签名密钥 |
+| `BOOTSTRAP_ADMIN_PASSWORD` | `admin123` | 管理员默认密码 |
+| `BOOTSTRAP_SUPER_ADMIN_PASSWORD` | `root123` | 超级管理员默认密码 |
+
+> 生产或公开部署前必须通过环境变量覆盖 `JWT_SECRET`、`DB_PASSWORD`、`BOOTSTRAP_ADMIN_PASSWORD` 和 `BOOTSTRAP_SUPER_ADMIN_PASSWORD`。
 
 ## 快速开始
 
@@ -129,6 +148,7 @@ meeting-room-system/
 ├── backend/              # Spring Boot 后端工程
 ├── frontend/             # Vue 3 前端工程
 ├── docs/                 # 实验文档、图示与项目截图
+├── .github/              # GitHub Actions 配置
 ├── start-dev.bat         # Windows 一键启动脚本
 ├── .gitignore
 └── README.md
