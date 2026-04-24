@@ -366,19 +366,6 @@ onMounted(reload)
   gap: 14px;
 }
 
-.reservation-page {
-  --stat-card-min-height: 96px;
-}
-
-.reservation-page .stat-card {
-  padding-block: 12px;
-}
-
-.reservation-page .stat-card .v {
-  margin-top: 6px;
-  font-size: clamp(1.84rem, 1.48rem + 0.78vw, 2.36rem);
-}
-
 .table-card .section-desc {
   display: none;
 }

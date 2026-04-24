@@ -93,6 +93,7 @@
 | `JWT_SECRET` | `dev-jwt-secret-change-me-at-least-32-bytes` | JWT 签名密钥 |
 | `BOOTSTRAP_ADMIN_PASSWORD` | `admin123` | 管理员默认密码 |
 | `BOOTSTRAP_SUPER_ADMIN_PASSWORD` | `root123` | 超级管理员默认密码 |
+| `BOOTSTRAP_SEED_DEMO_DATA_ON_START` | `true` | 启动时是否初始化演示数据 |
 
 > 生产或公开部署前必须通过环境变量覆盖 `JWT_SECRET`、`DB_PASSWORD`、`BOOTSTRAP_ADMIN_PASSWORD` 和 `BOOTSTRAP_SUPER_ADMIN_PASSWORD`。
 
@@ -106,9 +107,21 @@
 .\start-dev.bat
 ```
 
-脚本会检查目录、`mvn`、`npm`、MySQL 端口和前端依赖，随后启动后端并等待 `/api/health` 健康检查通过，再启动前端。
+脚本会检查目录、`mvn`、`npm`、MySQL、Redis 和前端依赖，随后启动后端并等待 `/api/health` 健康检查通过，再启动前端。
 
 ### 方式二：手动启动
+
+启动 Redis：
+
+```powershell
+redis-server.exe --port 6379
+```
+
+验证 Redis：
+
+```powershell
+redis-cli.exe -h 127.0.0.1 -p 6379 ping
+```
 
 启动后端：
 
