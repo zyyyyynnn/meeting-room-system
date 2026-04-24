@@ -160,18 +160,20 @@ onMounted(reload)
       <div class="page-hero__copy">
         <div class="page-title-row">
           <h2 class="page-title">用户与权限管理</h2>
-          <el-button
-            type="primary"
-            class="btn-key-solid page-refresh-btn"
-            :icon="RefreshRight"
-            :loading="loading"
-            circle
-            title="刷新"
-            aria-label="刷新用户与权限管理"
-            @click="reload"
-          />
         </div>
         <p class="page-subtitle">集中管理账号角色与启用状态，确保系统权限边界清晰可控。</p>
+      </div>
+      <div class="hero-actions">
+        <el-button
+          type="primary"
+          class="btn-key-solid page-refresh-btn"
+          :icon="RefreshRight"
+          :loading="loading"
+          circle
+          title="刷新"
+          aria-label="刷新用户与权限管理"
+          @click="reload"
+        />
       </div>
     </section>
 
@@ -237,7 +239,7 @@ onMounted(reload)
         </div>
 
         <el-table v-if="filteredUsers.length" class="users-table" :data="filteredUsers" style="width: 100%" table-layout="fixed" :max-height="560">
-          <el-table-column label="账号" min-width="240">
+          <el-table-column label="账号" min-width="220">
             <template #default="{ row }">
               <div class="user-cell">
                 <div class="user-cell__head">
@@ -249,7 +251,7 @@ onMounted(reload)
             </template>
           </el-table-column>
 
-          <el-table-column label="角色" min-width="220">
+          <el-table-column label="角色" min-width="200">
             <template #default="{ row }">
               <div class="user-role-cell">
                 <el-select class="user-row-select" :model-value="row.role" :disabled="!canEditRole(row)" @change="handleRoleChange(row, $event)">
@@ -261,7 +263,7 @@ onMounted(reload)
             </template>
           </el-table-column>
 
-          <el-table-column label="启用状态" min-width="200">
+          <el-table-column label="启用状态" min-width="180">
             <template #default="{ row }">
               <div class="user-enabled-cell">
                 <div class="user-enabled-head">

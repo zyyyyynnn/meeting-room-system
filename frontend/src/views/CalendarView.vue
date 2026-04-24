@@ -612,7 +612,7 @@ onMounted(loadRooms)
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  padding: 8px;
+  padding: 6px;
   border: 1px solid var(--surface-nested-border);
   border-radius: calc(var(--radius-unified) + 2px);
   background: linear-gradient(180deg, var(--surface-nested-top), var(--surface-nested-bottom));
@@ -625,7 +625,7 @@ onMounted(loadRooms)
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 32px;
+  min-height: 30px;
   padding: 0 10px;
   border-radius: 999px;
   background: rgba(248, 248, 248, 0.92);
@@ -681,13 +681,11 @@ onMounted(loadRooms)
 
 .calendar-wrap {
   overflow-x: auto;
-  padding: 12px;
+  padding: 8px;
   border: 1px solid var(--surface-nested-border);
   border-radius: calc(var(--radius-unified) + 2px);
   background: linear-gradient(180deg, var(--surface-nested-top), var(--surface-nested-bottom));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.74),
-    var(--surface-nested-shadow);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.74);
 }
 
 .calendar-title-row {

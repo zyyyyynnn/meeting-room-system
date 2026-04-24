@@ -126,7 +126,7 @@ async function reject(row: Reservation) {
     cancelButtonText: '取消',
     confirmButtonText: '确定',
     cancelButtonClass: 'btn-key-soft cancel-btn-force',
-    confirmButtonClass: 'btn-key-solid confirm-btn-force',
+    confirmButtonClass: 'btn-danger-soft confirm-btn-force',
   })
   const resp = await apiReject(row.id, value)
   if (resp.code !== 0) {
@@ -143,7 +143,7 @@ async function revoke(row: Reservation) {
     cancelButtonText: '取消',
     confirmButtonText: '确定',
     cancelButtonClass: 'btn-key-soft cancel-btn-force',
-    confirmButtonClass: 'btn-key-solid confirm-btn-force',
+    confirmButtonClass: 'btn-danger-soft confirm-btn-force',
   })
   const resp = await apiRevokeReview(row.id)
   if (resp.code !== 0) {
@@ -173,18 +173,20 @@ onMounted(reload)
       <div class="page-hero__copy">
         <div class="page-title-row">
           <h2 class="page-title">预约审批</h2>
-          <el-button
-            type="primary"
-            class="btn-key-solid page-refresh-btn"
-            :icon="RefreshRight"
-            :loading="loading"
-            circle
-            title="刷新"
-            aria-label="刷新预约审批"
-            @click="reload"
-          />
         </div>
         <p class="page-subtitle">管理员负责审批待处理预约；超级管理员可撤销历史审批结果并重新审核。</p>
+      </div>
+      <div class="hero-actions">
+        <el-button
+          type="primary"
+          class="btn-key-solid page-refresh-btn"
+          :icon="RefreshRight"
+          :loading="loading"
+          circle
+          title="刷新"
+          aria-label="刷新预约审批"
+          @click="reload"
+        />
       </div>
     </section>
 
@@ -231,8 +233,8 @@ onMounted(reload)
         </div>
 
         <el-table v-if="list.length" class="approvals-table" :data="list" style="width: 100%" :max-height="520">
-          <el-table-column prop="id" label="ID" width="90" />
-          <el-table-column label="申请信息" min-width="240">
+          <el-table-column prop="id" label="ID" width="76" />
+          <el-table-column label="申请信息" min-width="230">
             <template #default="{ row }">
               <div class="reservation-cell">
                 <div class="reservation-cell__title">{{ row.roomName || `会议室 #${row.roomId}` }}</div>
@@ -240,13 +242,13 @@ onMounted(reload)
               </div>
             </template>
           </el-table-column>
-          <el-table-column prop="startTime" label="开始时间" min-width="200" />
-          <el-table-column prop="endTime" label="结束时间" min-width="200" />
-          <el-table-column class-name="action-col" label="操作" width="188" align="right" header-align="center">
+          <el-table-column prop="startTime" label="开始时间" min-width="188" />
+          <el-table-column prop="endTime" label="结束时间" min-width="188" />
+          <el-table-column class-name="action-col" label="操作" width="164" align="right" header-align="center">
             <template #default="{ row }">
               <div class="row-actions row-actions--right row-actions--inline">
                 <el-button size="small" type="primary" class="btn-key-soft" @click="approve(row)">批准</el-button>
-                <el-button size="small" type="primary" class="btn-key-solid" @click="reject(row)">驳回</el-button>
+                <el-button size="small" type="primary" class="btn-danger-soft" @click="reject(row)">驳回</el-button>
               </div>
             </template>
           </el-table-column>
@@ -268,15 +270,15 @@ onMounted(reload)
           table-layout="fixed"
           :max-height="420"
         >
-          <el-table-column prop="id" label="ID" width="90" />
-          <el-table-column prop="status" label="审批结果" width="120" />
-          <el-table-column prop="roomName" label="会议室" min-width="220" />
-          <el-table-column prop="username" label="申请人" min-width="180" />
-          <el-table-column prop="approvedAt" label="审批时间" min-width="220" />
-          <el-table-column class-name="action-col reviewed-action-col" label="操作" width="190" align="center" header-align="center">
+          <el-table-column prop="id" label="ID" width="76" />
+          <el-table-column prop="status" label="审批结果" width="112" />
+          <el-table-column prop="roomName" label="会议室" min-width="200" />
+          <el-table-column prop="username" label="申请人" min-width="160" />
+          <el-table-column prop="approvedAt" label="审批时间" min-width="200" />
+          <el-table-column class-name="action-col reviewed-action-col" label="操作" width="156" align="center" header-align="center">
             <template #default="{ row }">
               <div class="row-actions row-actions--right">
-                <el-button size="small" type="primary" class="btn-key-solid" @click="revoke(row)">撤销审批</el-button>
+                <el-button size="small" type="primary" class="btn-danger-soft" @click="revoke(row)">撤销审批</el-button>
               </div>
             </template>
           </el-table-column>
@@ -304,7 +306,7 @@ onMounted(reload)
 }
 
 :deep(.approvals-table--reviewed colgroup col:last-child) {
-  width: 190px !important;
+  width: 156px !important;
 }
 
 :deep(.approvals-table--reviewed .reviewed-action-col .cell) {
@@ -330,13 +332,14 @@ onMounted(reload)
 
 .row-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
   row-gap: 6px;
 }
 
 .row-actions--right {
   justify-content: flex-end;
+  flex-wrap: nowrap;
 }
 
 .row-actions--inline {
@@ -345,7 +348,7 @@ onMounted(reload)
 }
 
 .row-actions--inline :deep(.el-button) {
-  min-width: 66px;
+  min-width: 64px;
 }
 
 .reservation-cell {
@@ -451,6 +454,7 @@ onMounted(reload)
 @media (max-width: 640px) {
   .row-actions {
     width: 100%;
+    flex-wrap: wrap;
   }
 
   .row-actions :deep(.el-button) {

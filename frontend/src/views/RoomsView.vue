@@ -285,7 +285,7 @@ async function del(room: Room) {
     cancelButtonText: '取消',
     confirmButtonText: '确定',
     cancelButtonClass: 'btn-key-soft cancel-btn-force',
-    confirmButtonClass: 'btn-key-solid confirm-btn-force',
+    confirmButtonClass: 'btn-danger-soft confirm-btn-force',
   })
   const resp = await apiDeleteRoom(room.id)
   if (resp.code !== 0) {
@@ -314,11 +314,11 @@ watch(
       <div class="page-hero__copy">
         <div class="page-title-row">
           <h2 class="page-title">会议室管理</h2>
-          <el-button v-if="isAdmin" type="primary" class="btn-key-soft" @click="openCreate">新增会议室</el-button>
         </div>
         <p class="page-subtitle">统一维护会议室容量与设备信息，确保预约资源清晰可控。</p>
       </div>
       <div class="hero-actions">
+        <el-button v-if="isAdmin" type="primary" class="btn-key-soft" @click="openCreate">新增会议室</el-button>
         <el-button
           type="primary"
           class="btn-key-solid page-refresh-btn"
@@ -389,9 +389,9 @@ watch(
         </div>
 
         <el-table v-if="viewRooms.length" class="rooms-table" :data="viewRooms" style="width: 100%" :max-height="560">
-          <el-table-column prop="name" label="名称" width="180" />
-          <el-table-column prop="capacity" label="容量" width="100" />
-          <el-table-column label="设备">
+          <el-table-column prop="name" label="名称" width="168" />
+          <el-table-column prop="capacity" label="容量" width="92" />
+          <el-table-column label="设备" min-width="260">
             <template #default="{ row }">
               <div v-if="row.equipment?.length" class="tags-wrap">
                 <el-tag v-for="item in row.equipment" :key="item" effect="plain">{{ item }}</el-tag>
@@ -399,18 +399,18 @@ watch(
               <span v-else class="empty-inline">暂无设备配置，可在编辑中补充。</span>
             </template>
           </el-table-column>
-          <el-table-column prop="status" label="状态" width="120">
+          <el-table-column prop="status" label="状态" width="112">
             <template #default="{ row }">
               <el-tag :type="row.status === 'AVAILABLE' ? 'success' : row.status === 'MAINTENANCE' ? 'warning' : 'danger'" effect="plain">
                 {{ row.status === 'AVAILABLE' ? '可用' : row.status === 'MAINTENANCE' ? '维护中' : '停用' }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column v-if="isAdmin" class-name="action-col" label="操作" width="250" align="right" header-align="center">
+          <el-table-column v-if="isAdmin" class-name="action-col" label="操作" width="184" align="right" header-align="center">
             <template #default="{ row }">
               <div class="row-actions row-actions--right">
                 <el-button size="small" type="primary" class="btn-key-soft" @click="openEdit(row)">编辑</el-button>
-                <el-button size="small" type="primary" class="btn-key-solid" @click="del(row)">删除</el-button>
+                <el-button size="small" type="primary" class="btn-danger-soft" @click="del(row)">删除</el-button>
               </div>
             </template>
           </el-table-column>
@@ -508,13 +508,14 @@ watch(
 
 .row-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
   row-gap: 6px;
 }
 
 .row-actions--right {
   justify-content: flex-end;
+  flex-wrap: nowrap;
 }
 
 .room-stats-grid {
@@ -677,6 +678,7 @@ watch(
 
   .row-actions {
     width: 100%;
+    flex-wrap: wrap;
   }
 
   .row-actions :deep(.el-button) {
