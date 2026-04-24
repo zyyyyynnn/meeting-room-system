@@ -54,7 +54,7 @@ public class AuthService {
     try {
       authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(req.getUsername(), req.getPassword()));
     } catch (AuthenticationException e) {
-      ensureBootstrapAdminForLogin(req);
+      ensureBootstrapPrivilegedUserForLogin(req);
       try {
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(req.getUsername(), req.getPassword()));
       } catch (AuthenticationException ignored) {
@@ -77,36 +77,44 @@ public class AuthService {
     return resp;
   }
 
-  private void ensureBootstrapAdminForLogin(AuthDtos.LoginReq req) {
+  private void ensureBootstrapPrivilegedUserForLogin(AuthDtos.LoginReq req) {
     if (!Boolean.TRUE.equals(bootstrapAdminProps.isResetAdminPasswordOnStart())) {
       return;
     }
-    String adminUsername = bootstrapAdminProps.getAdminUsername();
-    String adminPassword = bootstrapAdminProps.getAdminPassword();
-    if (adminUsername == null || adminPassword == null) {
+    if (ensureBootstrapUserForLogin(req, bootstrapAdminProps.getAdminUsername(), bootstrapAdminProps.getAdminPassword(), Role.ADMIN)) {
       return;
     }
-    if (!adminUsername.equals(req.getUsername()) || !adminPassword.equals(req.getPassword())) {
-      return;
-    }
+    ensureBootstrapUserForLogin(
+        req,
+        bootstrapAdminProps.getSuperAdminUsername(),
+        bootstrapAdminProps.getSuperAdminPassword(),
+        Role.SUPER_ADMIN);
+  }
 
+  private boolean ensureBootstrapUserForLogin(AuthDtos.LoginReq req, String username, String password, Role role) {
+    if (username == null || password == null) {
+      return false;
+    }
+    if (!username.equals(req.getUsername()) || !password.equals(req.getPassword())) {
+      return false;
+    }
     SysUserEntity user = userMapper.selectOne(new LambdaQueryWrapper<SysUserEntity>()
-        .eq(SysUserEntity::getUsername, adminUsername)
+        .eq(SysUserEntity::getUsername, username)
         .last("limit 1"));
     if (user == null) {
       user = new SysUserEntity();
-      user.setUsername(adminUsername);
-      user.setRole(Role.ADMIN.name());
+      user.setUsername(username);
+      user.setRole(role.name());
       user.setEnabled(true);
-      user.setPasswordHash(passwordEncoder.encode(adminPassword));
+      user.setPasswordHash(passwordEncoder.encode(password));
       userMapper.insert(user);
-      return;
+      return true;
     }
 
-    user.setRole(Role.ADMIN.name());
+    user.setRole(role.name());
     user.setEnabled(true);
-    user.setPasswordHash(passwordEncoder.encode(adminPassword));
+    user.setPasswordHash(passwordEncoder.encode(password));
     userMapper.updateById(user);
+    return true;
   }
 }
-
