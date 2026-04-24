@@ -104,7 +104,7 @@ npm run preview
 ### 接口请求
 
 - 接口统一通过 [src/api/http.ts](src/api/http.ts) 发出
-- 开发环境下 `/api` 代理到 `http://127.0.0.1:8080`
+- 开发环境下 `/api` 代理到 `http://127.0.0.1:8082`
 - 登录态请求会自动携带 `Authorization: Bearer <token>`
 
 ### 状态反馈

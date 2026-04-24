@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8082
 
 spring:
   application:
@@ -34,7 +34,7 @@ app:
     admin-username: ${BOOTSTRAP_ADMIN_USERNAME:admin}
     admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:admin123}
     super-admin-username: ${BOOTSTRAP_SUPER_ADMIN_USERNAME:root}
-    super-admin-password: ${BOOTSTRAP_SUPER_ADMIN_PASSWORD:Root@123456}
+    super-admin-password: ${BOOTSTRAP_SUPER_ADMIN_PASSWORD:root123}
     reset-admin-password-on-start: ${BOOTSTRAP_RESET_ADMIN_PASSWORD_ON_START:true}
     seed-demo-data-on-start: ${BOOTSTRAP_SEED_DEMO_DATA_ON_START:true}
     demo-user-password: ${BOOTSTRAP_DEMO_USER_PASSWORD:demo123}

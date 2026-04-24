@@ -64,6 +64,7 @@ public class SecurityConfig {
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/doc.html", "/webjars/**", "/v3/api-docs/**", "/swagger-ui/**").permitAll()
             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+            .requestMatchers("/api/health").permitAll()
             .requestMatchers("/api/auth/**").permitAll()
             .anyRequest().authenticated()
         )
@@ -71,4 +72,3 @@ public class SecurityConfig {
         .build();
   }
 }
-
