@@ -75,7 +75,7 @@
 
 - Java 21
 - Maven 3.8+
-- Node.js 18+ 与 npm
+- Node.js 24+ 与 npm 11.6.0
 - MySQL 8，默认端口 `3306`
 - Redis，默认端口 `6379`
 

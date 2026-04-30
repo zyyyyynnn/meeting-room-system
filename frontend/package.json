@@ -2,7 +2,11 @@
   "name": "frontend",
   "private": true,
   "version": "0.0.0",
+  "packageManager": "npm@11.6.0",
   "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "scripts": {
     "clean:vite": "node -e \"try{require('node:fs').rmSync('node_modules/.vite',{recursive:true,force:true})}catch(e){}\"",
     "dev": "vite",
