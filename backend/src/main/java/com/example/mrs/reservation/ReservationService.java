@@ -149,6 +149,7 @@ public class ReservationService {
       throw BizException.badRequest("周期次数仅支持 1~12 周");
     }
 
+    // 接口预留能力：任意一周创建失败时由事务整体回滚，避免只生成部分周期预约。
     List<ReservationDtos.ReservationResp> result = new ArrayList<>();
     for (int i = 0; i < req.getRepeatWeeks(); i++) {
       ReservationDtos.CreateReq one = new ReservationDtos.CreateReq();
@@ -342,6 +343,7 @@ public class ReservationService {
 
   private boolean requiresApproval(MeetingRoomEntity room) {
     if (room == null) return true;
+    // 演示规则：A-101 作为重点会议室始终走审批，便于展示审批流程。
     if (room.getName() != null && room.getName().trim().equalsIgnoreCase("A-101")) {
       return true;
     }

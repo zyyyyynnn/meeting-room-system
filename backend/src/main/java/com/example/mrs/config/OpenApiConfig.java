@@ -12,7 +12,6 @@ public class OpenApiConfig {
     return new OpenAPI().info(new Info()
         .title("会议室预约与资源协调系统 API")
         .version("v1")
-        .description("Spring Boot + MyBatis-Plus + MySQL + Redis + Knife4j"));
+        .description("Spring Boot + MyBatis-Plus + MySQL + Redis 接口元信息"));
   }
 }
-

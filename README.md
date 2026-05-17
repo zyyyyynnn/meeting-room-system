@@ -25,7 +25,7 @@
 | 后端 | Spring Boot 3、Spring Security、MyBatis-Plus、MySQL 8、Redis、JWT |
 | 前端 | Vue 3、TypeScript、Vite、Element Plus、FullCalendar |
 | 构建 | Maven、npm |
-| 文档 | OpenAPI / Swagger 配置、课程实验文档 |
+| 文档 | 接口说明文档、OpenAPI 元信息配置、课程实验文档 |
 | 附加依赖 | React 19、React DOM 19、`@paper-design/shaders-react`，仅用于动态 logo |
 
 ## 系统架构
@@ -47,6 +47,7 @@
 - 会议室状态、容量、设备与维护信息管理
 - 会议预约日历
 - 房间筛选、时段查看、冲突检测与替代建议
+- 当前页面主流程支持单次预约；后端保留每周周期预约接口能力，作为接口预留
 - 我的预约查看、取消与删除
 
 ### 审批与通知
@@ -97,6 +98,18 @@
 
 > 生产或公开部署前必须通过环境变量覆盖 `JWT_SECRET`、`DB_PASSWORD`、`BOOTSTRAP_ADMIN_PASSWORD` 和 `BOOTSTRAP_SUPER_ADMIN_PASSWORD`。
 
+## 数据库初始化
+
+空数据库环境下，先执行初始化脚本创建业务表：
+
+```powershell
+mysql -h 127.0.0.1 -P 3306 -u root -p < .\docs\sql\init.sql
+```
+
+脚本位置：[docs/sql/init.sql](docs/sql/init.sql)。数据库端口、库名、用户名和密码以 [backend/src/main/resources/application.yml](backend/src/main/resources/application.yml) 中的 `DB_URL`、`DB_USERNAME`、`DB_PASSWORD` 为准。
+
+后端启动时会按配置自动注入默认管理员、超级管理员和演示数据；对应开关见 `app.bootstrap.*` 配置。
+
 ## 快速开始
 
 ### 方式一：一键启动
@@ -142,7 +155,7 @@ npm run dev
 
 - 前端：[http://localhost:5175](http://localhost:5175)
 - 后端：[http://localhost:8082](http://localhost:8082)
-- 接口文档：[http://localhost:8082/doc.html](http://localhost:8082/doc.html)
+- 接口说明以 [docs/documents/06-API接口文档.docx](docs/documents/06-API接口文档.docx) 为准。当前后端仅保留 OpenAPI 元信息配置，不承诺提供在线接口文档 UI。
 
 ## 默认账号
 
@@ -197,6 +210,7 @@ meeting-room-system/
 | `docs/documents` | 需求规格、产品原型、用户故事地图、系统架构、数据库设计、API 接口文档 |
 | `docs/diagrams` | 架构图、流程图、ER 图、时序图、用户故事地图 |
 | `docs/page-screenshots` | 系统真实运行页面截图 |
+| `docs/sql` | 空数据库初始化脚本 |
 
 正式文档清单：
 

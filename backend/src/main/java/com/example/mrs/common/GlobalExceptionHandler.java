@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+  // 课程演示场景统一用 HTTP 200 + ApiResponse.code 表达业务结果，前端按 code 展示错误信息。
   @ExceptionHandler(BizException.class)
   @ResponseStatus(HttpStatus.OK)
   public ApiResponse<Void> handleBiz(BizException e) {
@@ -48,4 +49,3 @@ public class GlobalExceptionHandler {
     return ApiResponse.error(500, "系统错误");
   }
 }
-
